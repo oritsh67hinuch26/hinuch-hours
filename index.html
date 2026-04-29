@@ -79,7 +79,7 @@
 // ====================================================
 // ⚡ הכנס כאן את כתובת ה-Apps Script שלך
 // ====================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzp52Bbz_WWGPQWrUr1P3zxb9FzsScFsZSpAvT_byA--WCzA0VXre2O5YnELPgLUf71Ag/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpm7fwd4XGZrVJpxORgTuw72vOU-BvEzwDQto5tBSV8YYStzmsbgByNFiGeCViqeVsoA/exec";
 // ====================================================
 
 const INSTRUCTORS = ["אורית שטרית", "מעיין זך", "ענת דימנט", "אמונה לנדאו"];
@@ -98,10 +98,10 @@ async function apiGet() {
   return data.entries || [];
 }
 async function apiSave(entry) {
-  await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(entry) });
+  const fd1 = new FormData(); fd1.append("data", JSON.stringify(entry)); await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd1 });
 }
 async function apiDelete(id) {
-  await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id }) });
+  const fd2 = new FormData(); fd2.append("data", JSON.stringify({ action: "delete", id })); await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd2 });
 }
 
 // ---- STATE ----
