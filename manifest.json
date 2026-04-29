@@ -1,0 +1,26 @@
+{
+  "name": "חינוך ישראלי — דיווח שעות",
+  "short_name": "חינוך ישראלי",
+  "description": "דיווח שעות למנחים",
+  "start_url": "/hinuch-hours/",
+  "display": "standalone",
+  "background_color": "#0F6E56",
+  "theme_color": "#0F6E56",
+  "orientation": "portrait",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
