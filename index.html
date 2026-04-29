@@ -152,7 +152,7 @@ function addEntryHTML() {
   if (saved) return `<div class="card saved-msg"><div style="font-size:40px;margin-bottom:12px">✓</div><div style="font-size:16px;font-weight:500;color:#0F6E56">נשמר בהצלחה!</div></div>`;
   const f = formState;
   const canSave = f.school && f.actType && (f.actType !== "אחר" || f.actFree.trim()) && f.hours;
-  const priceHint = f.hours && parseFloat(f.hours) > 0 ? `<div class="price-hint">${f.hours} שעות = ₪${(parseFloat(f.hours)*RATE).toLocaleString()}</div>` : "";
+  const priceHint = "";
   return `<div class="card">
     <div class="form-group"><label>תאריך</label><input type="date" id="f-date" value="${f.date}"></div>
     <div class="form-group"><label>גוף</label>
@@ -180,9 +180,8 @@ function myEntriesHTML() {
   if (!mine.length) return `<div class="empty">אין דיווחים עדיין</div>`;
   const total = mine.reduce((s,e)=>s+parseFloat(e.hours),0);
   return `
-    <div class="stat-grid">
+    <div class="stat-grid" style="grid-template-columns:1fr">
       <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">סה"כ שעות</div></div>
-      <div class="stat"><div class="stat-val">₪${Math.round(total*RATE).toLocaleString()}</div><div class="stat-label">לתשלום</div></div>
     </div>
     <div class="card">${mine.map(e=>`
       <div class="entry-item">
