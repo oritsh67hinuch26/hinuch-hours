@@ -111,7 +111,7 @@ async function apiDelete(id) {
 }
 
 // ---- STATE ----
-let state = { user: null, tab: 0, entries: [], loading: false, error: null };
+let state = { user: null, tab: 0, entries: [], loading: false, error: null, adminUnlocked: false };
 let formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "" };
 let saved = false;
 
@@ -257,6 +257,15 @@ function summaryHTML() {
 }
 
 function adminHTML() {
+  if (!state.adminUnlocked) return `
+    <div class="card" style="text-align:center;padding:40px 20px">
+      <div style="font-size:32px;margin-bottom:16px">🔒</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:20px;color:#333">אזור מנהל</div>
+      <div class="form-group">
+        <input type="password" id="admin-pass" placeholder="סיסמה" style="text-align:center;font-size:18px;letter-spacing:4px">
+      </div>
+      <button class="btn btn-primary" onclick="checkAdminPass()" style="margin-top:8px">כניסה</button>
+    </div>`;
   if (state.loading) return `<div class="spinner">טוען...</div>`;
   if (!state.entries.length) return `<div class="empty">אין דיווחים עדיין</div>`;
 
@@ -293,6 +302,11 @@ function adminHTML() {
 }
 
 // ---- ACTIONS ----
+function checkAdminPass() {
+  const val = document.getElementById('admin-pass').value;
+  if (val === '1967') { state.adminUnlocked = true; render(); }
+  else { document.getElementById('admin-pass').style.borderColor='#e55'; document.getElementById('admin-pass').value=''; }
+}
 function login(name) { state.user = name; loadEntries(); render(); }
 function logout() { state.user = null; state.tab = 0; render(); }
 function setTab(i) { state.tab = i; render(); }
