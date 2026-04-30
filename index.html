@@ -307,6 +307,20 @@ function checkAdminPass() {
   if (val === '1967') { state.adminUnlocked = true; render(); }
   else { document.getElementById('admin-pass').style.borderColor='#e55'; document.getElementById('admin-pass').value=''; }
 }
+function tryLogin() {
+  const val = document.getElementById('login-name') ? document.getElementById('login-name').value.trim() : '';
+  const INSTRUCTORS = ["אורית שטרית","מעיין זך","ענת דימנט","אמונה לנדאו"];
+  if (INSTRUCTORS.includes(val)) {
+    state.loginError = null;
+    state.user = val;
+    loadEntries();
+    render();
+  } else {
+    state.loginError = "השם לא נמצא ברשימה. נסי שוב.";
+    render();
+    setTimeout(() => { const el = document.getElementById('login-name'); if(el) el.focus(); }, 50);
+  }
+}
 function login(name) { state.user = name; loadEntries(); render(); }
 function logout() { state.user = null; state.tab = 0; render(); }
 function setTab(i) { state.tab = i; render(); }
