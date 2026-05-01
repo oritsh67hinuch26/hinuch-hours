@@ -345,6 +345,14 @@ function checkAdminPass() {
   else { document.getElementById('admin-pass').style.borderColor='#e55'; document.getElementById('admin-pass').value=''; }
 }
 function selectUser(name) {
+  if (name === "אורית שטרית") {
+    state.user = name;
+    state.loginSelected = null;
+    state.adminUnlocked = true;
+    loadEntries();
+    render();
+    return;
+  }
   state.loginSelected = name;
   state.loginError = null;
   render();
@@ -356,7 +364,7 @@ function backToNames() {
   render();
 }
 function tryLogin() {
-  const passwords = {"אורית שטרית":"1967","מעיין זך":"001","ענת דימנט":"002","אמונה לנדאו":"003"};
+  const passwords = {"מעיין זך":"001","ענת דימנט":"002","אמונה לנדאו":"003"};
   const val = document.getElementById('login-pass') ? document.getElementById('login-pass').value : '';
   if (val === passwords[state.loginSelected]) {
     state.loginError = null;
