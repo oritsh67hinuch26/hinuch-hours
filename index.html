@@ -106,8 +106,10 @@ async function apiGet() {
 async function apiSave(entry) {
   const fd1 = new FormData(); fd1.append("data", JSON.stringify(entry)); await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd1 });
 }
-async function apiDelete(id) {
-  const fd2 = new FormData(); fd2.append("data", JSON.stringify({ action: "delete", id })); await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd2 });
+async function apiDelete(id, instructor, school) {
+  const fd2 = new FormData();
+  fd2.append("data", JSON.stringify({ action: "delete", id, instructor, school }));
+  await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd2 });
 }
 
 // ---- STATE ----
@@ -416,9 +418,12 @@ async function submitEntry() {
 }
 
 async function deleteEntry(id) {
+  const entry = state.entries.find(e=>String(e.id)===String(id));
+  if (!entry) return;
+  if (!confirm("למחוק את הדיווח?\n" + entry.school + " · " + entry.activity + " · " + entry.hours + " ש'")) return;
   state.entries = state.entries.filter(e=>String(e.id)!==String(id));
   render();
-  await apiDelete(id);
+  await apiDelete(id, entry.instructor, entry.school);
 }
 
 async function loadEntries() {
