@@ -104,7 +104,14 @@ async function apiGet() {
   return data.entries || [];
 }
 async function apiSave(entry) {
-  const fd1 = new FormData(); fd1.append("data", JSON.stringify(entry)); await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: fd1 });
+  const url = SCRIPT_URL + "?action=save&id=" + encodeURIComponent(entry.id)
+    + "&instructor=" + encodeURIComponent(entry.instructor)
+    + "&date=" + encodeURIComponent(entry.date)
+    + "&school=" + encodeURIComponent(entry.school)
+    + "&activity=" + encodeURIComponent(entry.activity)
+    + "&hours=" + encodeURIComponent(entry.hours)
+    + "&ts=" + encodeURIComponent(entry.ts);
+  await fetch(url);
 }
 async function apiDelete(id, instructor, school) {
   const url = SCRIPT_URL + "?action=delete&id=" + encodeURIComponent(id) + "&instructor=" + encodeURIComponent(instructor) + "&school=" + encodeURIComponent(school);
