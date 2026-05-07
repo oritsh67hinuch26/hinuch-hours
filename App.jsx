@@ -67,12 +67,12 @@ const days = [
       "13:30 נקיק זיגמונד-טון (קפרון) – כשעה הליכה בנקיק הטורקיז"
     ],
     afternoon: [
-      "צ'ק-אין ל-Aparthotel Zell am See – כרטיב חינמי לרכבל",
+      "צ'ק-אין ל-ALPIN Das Sporthotel – SUMMERCARD כלולה!",
       "15:30 Schmittenhöhe – רכבל לגובה 1,965 מ', תצפית פנורמית על 30 פסגות והאגם"
     ],
     evening: [
       "ארוחת ערב חגיגית ליום הולדת 🎉",
-      "לינה: Aparthotel Zell am See – נוף לאגם"
+      "לינה: ALPIN – Das Sporthotel"
     ],
     hotel: "ALPIN – Das Sporthotel | SUMMERCARD כלולה 🎿", gf: "Kupferkanne, Zell am See",
     distance: "אבנטאו←Hohenwerfen: 20 ק\"מ | ←Zell am See: 30 ק\"מ",
@@ -85,7 +85,7 @@ const days = [
       { label: "🏰 טירת Hohenwerfen", waze: "https://waze.com/ul?ll=47.4618,13.1872&navigate=yes" },
       { label: "💧 נקיק זיגמונד-טון", waze: "https://waze.com/ul?ll=47.3747,13.1253&navigate=yes" },
       { label: "🏔️ Schmittenhöhe (רכבל)", waze: "https://waze.com/ul?ll=47.3244,12.7931&navigate=yes" },
-      { label: "🏨 Aparthotel Zell am See", waze: "https://waze.com/ul?q=ALPIN+Das+Sporthotel+Zell+am+See&navigate=yes" },
+      { label: "🏨 ALPIN – Das Sporthotel", waze: "https://waze.com/ul?q=ALPIN+Das+Sporthotel+Zell+am+See&navigate=yes" },
     ]
   },
   {
@@ -102,7 +102,7 @@ const days = [
     ],
     evening: [
       "17:30 חזרה למלון + ארוחת ערב שקטה",
-      "לינה: Aparthotel Zell am See"
+      "לינה: ALPIN – Das Sporthotel"
     ],
     hotel: "ALPIN – Das Sporthotel | SUMMERCARD כלולה 🎿", gf: "להצטייד בחטיפי GF מהמלון",
     distance: "Zell am See←סכר: 10 ק\"מ | ←גרוסגלוקנר: 15 ק\"מ | דרך פנורמית: 48 ק\"מ",
