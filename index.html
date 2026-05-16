@@ -4,11 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2B4BAA">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="חינוך ישראלי">
-  <link rel="manifest" href="manifest.json">
   <title>חינוך ישראלי — דיווח שעות</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,73 +11,31 @@
     .app { max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
     .header { background: #2B4BAA; min-height: 60px; color: #fff; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
     .header-title { font-size: 17px; font-weight: 600; }
-    .header-sub { font-size: 12px; opacity: .8; margin-top: 2px; }
     .header-user { background: rgba(255,255,255,.2); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; cursor: pointer; border: none; color: #fff; }
     .tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 60px; z-index: 9; }
-    .tab { flex: 1; padding: 11px 6px; text-align: center; font-size: 12px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; white-space: nowrap; border: none; background: none; font-family: inherit; }
+    .tab { flex: 1; padding: 11px 6px; text-align: center; font-size: 12px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: .2s; border: none; background: none; font-family: inherit; }
     .tab.active { color: #2B4BAA; border-bottom: 2px solid #2B4BAA; font-weight: 500; }
     .content { padding: 16px; }
     .card { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 16px; margin-bottom: 12px; }
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
-    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; background: #fff; color: #1a1a1a; font-family: inherit; direction: rtl; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #2B4BAA; box-shadow: 0 0 0 2px rgba(15,110,86,.1); }
-    textarea { resize: none; height: 60px; margin-top: 8px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; background: #fff; font-family: inherit; direction: rtl; }
     .btn { width: 100%; padding: 13px; border-radius: 10px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: .15s; font-family: inherit; }
     .btn-primary { background: #2B4BAA; color: #fff; }
-    .btn-primary:active { transform: scale(.98); }
-    .btn-primary:disabled { background: #9aaad4; cursor: default; }
-    .btn-ghost { background: transparent; border: 1px solid #ddd; color: #333; margin-top: 8px; }
+    .btn-primary:disabled { background: #9aaad4; }
     .entry-item { padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: flex-start; }
-    .entry-item:last-child { border-bottom: none; }
-    .entry-main { flex: 1; }
-    .entry-school { font-size: 14px; font-weight: 500; }
-    .entry-act { font-size: 13px; color: #666; margin-top: 2px; }
-    .entry-date { font-size: 12px; color: #999; margin-top: 2px; }
-    .pill { background: #e8ecf8; color: #1a3080; border-radius: 20px; padding: 3px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .pill { background: #e8ecf8; color: #1a3080; border-radius: 20px; padding: 3px 10px; font-size: 13px; font-weight: 600; }
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .stat { background: #f8f8f8; border-radius: 8px; padding: 12px; text-align: center; }
     .stat-val { font-size: 22px; font-weight: 500; color: #2B4BAA; }
-    .stat-label { font-size: 12px; color: #888; margin-top: 2px; }
-    .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
-    .login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
-    .login-logo { width: 64px; height: 64px; background: #2B4BAA; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 20px; }
-    .login-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
-    .login-sub { font-size: 14px; color: #888; margin-bottom: 28px; }
-    .name-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; }
-    .name-btn { padding: 14px 20px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fff; font-size: 15px; cursor: pointer; text-align: right; font-family: inherit; transition: .15s; }
-    .name-btn:hover { border-color: #2B4BAA; background: #f0faf7; color: #2B4BAA; }
-    .delete-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 4px; }
-    .delete-btn:hover { color: #e55; }
-    .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-    .summary-row:last-child { border-bottom: none; }
-    .summary-name { font-size: 14px; font-weight: 500; }
-    .bar-wrap { height: 4px; background: #f0f0f0; border-radius: 4px; margin-top: 5px; overflow: hidden; width: 140px; }
-    .bar-fill { height: 100%; background: #2B4BAA; border-radius: 4px; }
-    .bar-fill-b { background: #2952b3; }
-    .summary-hours { font-size: 15px; font-weight: 600; color: #2B4BAA; text-align: left; }
-    .summary-amount { font-size: 11px; color: #999; margin-top: 1px; text-align: left; }
-    .grand-total { background: #2B4BAA; color: #fff; border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .gt-label { font-size: 13px; opacity: .85; }
-    .gt-val { font-size: 18px; font-weight: 600; }
-    .filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
-    .filter-row select { flex: 1; font-size: 13px; padding: 8px 10px; }
-    .total-bar { background: #2B4BAA; color: #fff; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .section-hdr { font-size: 12px; font-weight: 500; color: #999; display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #eee; margin-bottom: 4px; }
-    .admin-entry { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-    .admin-entry:last-child { border-bottom: none; }
-    .price-hint { background: #e8ecf8; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; color: #1a3080; }
-    .saved-msg { text-align: center; padding: 40px 20px; }
-    .spinner { text-align: center; padding: 30px; color: #999; font-size: 14px; }
-    .month-sel { width: 100%; margin-bottom: 14px; }
-    .error-msg { background: #fff0f0; border: 1px solid #ffcccc; border-radius: 8px; padding: 12px; font-size: 13px; color: #c00; margin-bottom: 12px; }
-    
-    /* עיצוב ייעודי למנוע בחירת שעות משופר */
+    .stat-label { font-size: 12px; color: #888; }
     .hours-counter { display: flex; align-items: center; gap: 12px; justify-content: center; background: #fff; padding: 4px; border-radius: 8px; border: 1px solid #ddd; }
-    .hours-btn { width: 48px; height: 42px; background: #e8ecf8; color: #2B4BAA; border: none; border-radius: 6px; font-size: 22px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .hours-btn { width: 48px; height: 42px; background: #e8ecf8; color: #2B4BAA; border: none; border-radius: 6px; font-size: 22px; font-weight: 600; cursor: pointer; }
     .hours-btn.plus { background: #2B4BAA; color: #fff; }
-    .hours-btn:active { transform: scale(0.95); }
-    .hours-display { font-size: 18px; font-weight: 600; min-width: 70px; text-align: center; color: #1a1a1a; }
+    .hours-display { font-size: 18px; font-weight: 600; min-width: 70px; text-align: center; }
+    .login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .name-btn { width: 100%; max-width: 300px; padding: 14px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 16px; cursor: pointer; text-align: right; }
+    .summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
   </style>
 </head>
 <body>
@@ -90,7 +43,7 @@
 
 <script>
 // ====================================================
-// ⚡ הכנס כאן את כתובת ה-Apps Script שלך
+// הכתובת תוקנה כאן ונמצאת בשורה אחת רציפה:
 // ====================================================
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJe1M-ZnlYE-Ws-wzvUsEUw9ZX3lWqTNJpElzWmWEYFr4qFMd9jf34nAvWNw-XQFkd/exec";
 // ====================================================
@@ -100,321 +53,106 @@ const SCHOOLS = ["סלעית","רמת כרמים","שבילי רעות","יחד�
 const ACTIVITIES = ["יום הדרכה","פגישות עבודה","אחר"];
 const RATE = 440;
 
-function fmtDate(d) { const p = d.split("-"); return `${p[2]}/${p[1]}`; }
-function monthLabel(d) { return ["","ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"][parseInt(d.split("-")[1])]; }
-function getTodayDateString() { return new Date().toISOString().split("T")[0]; }
+let state = { user: null, tab: 0, entries: [], loading: false, filterMonth: "" };
+let formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "0" };
 
-// API calls
-async function apiGet() {
-  const res = await fetch(SCRIPT_URL);
-  const data = await res.json();
-  return data.entries || [];
-}
-async function apiSave(entry) {
-  const url = SCRIPT_URL + "?action=save&id=" + encodeURIComponent(entry.id)
-    + "&instructor=" + encodeURIComponent(entry.instructor)
-    + "&date=" + encodeURIComponent(entry.date)
-    + "&school=" + encodeURIComponent(entry.school)
-    + "&activity=" + encodeURIComponent(entry.activity)
-    + "&hours=" + encodeURIComponent(entry.hours)
-    + "&ts=" + encodeURIComponent(entry.ts);
-  await fetch(url);
-}
-async function apiDelete(id, instructor, school) {
-  const url = SCRIPT_URL + "?action=delete&id=" + encodeURIComponent(id) + "&instructor=" + encodeURIComponent(instructor) + "&school=" + encodeURIComponent(school);
-  await fetch(url);
-}
-
-// ---- STATE ----
-let state = { user: null, tab: 0, entries: [], loading: false, error: null, adminUnlocked: false, loginSelected: null, loginError: null };
-let formState = { date: getTodayDateString(), school: "", actType: "", actFree: "", hours: "" };
-let saved = false;
-
-function createInvoice() {
-  const fs = state.filterSchool || "";
-  const fm = state.filterMonth || "";
-  const filtered = state.entries.filter(e =>
-    (!fs || e.school === fs) && (!fm || e.date.startsWith(fm))
-  );
-  const total = filtered.reduce((s,e) => s + parseFloat(e.hours), 0);
-  const month = fm ? monthLabel(fm + "-01") + " " + fm.substring(0,4) : "לא צוין";
-  const msg = "צרי דרישת תשלום עבור " + fs + " לחודש " + month + ". הנתונים:\n" +
-    filtered.map(e => fmtDate(e.date) + " | " + e.instructor + " | " + e.activity + " | " + e.hours + " ש'").join("\n") +
-    "\n\nסה\"כ: " + total + " שעות = ₪" + Math.round(total * RATE).toLocaleString();
-  sendPrompt(msg);
+async function loadData() {
+  state.loading = true; render();
+  try {
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+    state.entries = data.entries || [];
+  } catch(e) { console.error("Error loading", e); }
+  state.loading = false; render();
 }
 
 function render() {
   const root = document.getElementById("root");
-  if (!state.user) { root.innerHTML = loginHTML(); return; }
+  if (!state.user) {
+    root.innerHTML = `<div class="login-wrap"><h2>חינוך ישראלי</h2><p style="margin-bottom:20px">בחרי שם:</p>
+      ${INSTRUCTORS.map(n=>`<button class="name-btn" onclick="state.user='${n}';loadData();render()">${n}</button>`).join("")}
+    </div>`;
+    return;
+  }
+
   root.innerHTML = `
     <div class="app">
       <div class="header">
-        <img src="data:image/png;base64,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" style="height:40px;object-fit:contain">
-        <button class="header-user" onclick="logout()" title="החלף משתמש">${state.user.split(" ").map(w=>w[0]).join("").substring(0,2)}</button>
+        <div class="header-title">שלום, ${state.user}</div>
+        <button class="header-user" onclick="state.user=null;render()">יציאה</button>
       </div>
-      <div class="tabs">${(state.user==="אורית שטרית"?["+ דיווח","הדיווחים שלי","ריכוז"]:["+ דיווח","הדיווחים שלי"]).map((t,i)=>`<button class="tab${state.tab===i?" active":""}" onclick="setTab(${i})">${t}</button>`).join("")}</div>
-      <div class="content">${tabContent()}</div>
+      <div class="tabs">
+        <button class="tab ${state.tab===0?'active':''}" onclick="state.tab=0;render()">+ דיווח</button>
+        <button class="tab ${state.tab===1?'active':''}" onclick="state.tab=1;render()">הדיווחים שלי</button>
+        ${state.user === "אורית שטרית" ? `<button class="tab ${state.tab===2?'active':''}" onclick="state.tab=2;render()">ריכוז</button>` : ''}
+      </div>
+      <div class="content">${getTabContent()}</div>
     </div>`;
-  attachEvents();
 }
 
-function loginHTML() {
-  const sel = state.loginSelected;
-  const err = state.loginError;
-  const logo = `<div class="login-logo" style="background:transparent;width:auto;height:auto;border-radius:0"><img src="data:image/png;base64,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" style="height:60px;object-fit:contain"></div>`;
-  if (!sel) {
-    return `<div class="login-wrap">
-      ${logo}
-      <div class="login-title">חינוך ישראלי</div>
-      <div class="login-sub">מי את/ה?</div>
-      <div class="name-grid">
-        ${INSTRUCTORS.map(n=>`<button class="name-btn" onclick="selectUser('${n}')">${n}</button>`).join("")}
+function getTabContent() {
+  if (state.tab === 0) return `
+    <div class="card">
+      <div class="form-group"><label>תאריך</label><input type="date" id="f-date" value="${formState.date}" max="${new Date().toISOString().split("T")[0]}" onchange="formState.date=this.value"></div>
+      <div class="form-group"><label>גוף</label>
+        <select onchange="formState.school=this.value"><option value="">בחרי...</option>
+        ${SCHOOLS.map(s=>`<option value="${s}" ${formState.school===s?'selected':''}>${s}</option>`).join("")}</select>
       </div>
-    </div>`;
-  } else {
-    return `<div class="login-wrap">
-      ${logo}
-      <div class="login-title">${sel}</div>
-      <div class="login-sub">הזיני סיסמה</div>
-      <div style="width:100%;max-width:340px">
-        <div class="form-group">
-          <input type="password" id="login-pass" onkeydown="if(event.key==='Enter')tryLogin()" placeholder="סיסמה..." style="text-align:center;font-size:20px;letter-spacing:4px${err?';border-color:#e55':''}">
+      <div class="form-group"><label>פעילות</label>
+        <select onchange="formState.actType=this.value;render()"><option value="">בחרי...</option>
+        ${ACTIVITIES.map(a=>`<option value="${a}" ${formState.actType===a?'selected':''}>${a}</option>`).join("")}</select>
+        ${formState.actType==='אחר'?`<textarea placeholder="פירוט..." onchange="formState.actFree=this.value"></textarea>`:''}
+      </div>
+      <div class="form-group">
+        <label>שעות</label>
+        <div class="hours-counter">
+          <button class="hours-btn" onclick="updateHours(-0.5)">-</button>
+          <span class="hours-display">${formState.hours} ש'</span>
+          <button class="hours-btn plus" onclick="updateHours(0.5)">+</button>
         </div>
-        ${err?`<div style="color:#e55;font-size:13px;text-align:center;margin-bottom:12px">${err}</div>`:''}
-        <button class="btn btn-primary" onclick="tryLogin()">כניסה</button>
-        <button class="btn btn-ghost" onclick="backToNames()">חזרה</button>
       </div>
+      <button class="btn btn-primary" onclick="save()">שמור דיווח</button>
     </div>`;
+
+  if (state.tab === 1) {
+    const mine = state.entries.filter(e => e.instructor === state.user);
+    return `<div class="card">${mine.length ? mine.map(e=>`<div class="entry-item"><div><b>${e.school}</b><br><small>${e.date}</small></div><span class="pill">${e.hours} ש'</span></div>`).join("") : 'אין דיווחים'}</div>`;
+  }
+
+  if (state.tab === 2) {
+    const total = state.entries.reduce((s,e)=>s+parseFloat(e.hours),0);
+    return `
+      <div class="stat-grid"><div class="stat"><div class="stat-val">${total}</div><div class="stat-label">סה"כ שעות</div></div>
+      <div class="stat"><div class="stat-val">₪${(total*RATE).toLocaleString()}</div><div class="stat-label">סה"כ לתשלום</div></div></div>
+      <div class="card">${INSTRUCTORS.map(ins=>{
+        const h = state.entries.filter(e=>e.instructor===ins).reduce((s,e)=>s+parseFloat(e.hours),0);
+        return `<div class="summary-row"><span>${ins}</span><b>${h} ש'</b></div>`;
+      }).join("")}</div>`;
   }
 }
 
-function tabContent() {
-  if (state.tab === 0) return addEntryHTML();
-  if (state.tab === 1) return myEntriesHTML();
-  if (state.tab === 2 && state.user==="אורית שטרית") return summaryHTML();
-  return addEntryHTML();
-}
-
-function addEntryHTML() {
-  if (saved) return `<div class="card saved-msg"><div style="font-size:40px;margin-bottom:12px">✓</div><div style="font-size:16px;font-weight:500;color:#2B4BAA">נשמר בהצלחה!</div></div>`;
-  const f = formState;
-  const canSave = f.school && f.actType && (f.actType !== "אחר" || f.actFree.trim()) && f.hours;
-  const currentHours = parseFloat(f.hours) || 0;
-  
-  return `<div class="card">
-    <div class="form-group">
-      <label>תאריך</label>
-      <input type="date" id="f-date" value="${f.date}" max="${getTodayDateString()}">
-    </div>
-    <div class="form-group"><label>גוף</label>
-      <select id="f-school">
-        <option value="">בחר גוף...</option>
-        ${SCHOOLS.map(s=>`<option value="${s}"${f.school===s?" selected":""}>${s}</option>`).join("")}
-      </select>
-    </div>
-    <div class="form-group"><label>סוג פעילות</label>
-      <select id="f-act">
-        <option value="">בחר פעילות...</option>
-        ${ACTIVITIES.map(a=>`<option value="${a}"${f.actType===a?" selected":""}>${a}</option>`).join("")}
-      </select>
-      ${f.actType==="אחר"?`<textarea id="f-free" placeholder="תאר/י את הפעילות...">${f.actFree}</textarea>`:""}
-    </div>
-    
-    <div class="form-group">
-      <label>מספר שעות</label>
-      <div class="hours-counter">
-        <button type="button" class="hours-btn" onclick="updateHoursCount(-0.5)">-</button>
-        <span class="hours-display">${currentHours === 0 ? 'בחר' : currentHours + " ש'"}</span>
-        <button type="button" class="hours-btn plus" onclick="updateHoursCount(0.5)">+</button>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" onclick="submitEntry()" ${!canSave?"disabled":""}>שמור דיווח</button>
-  </div>`;
-}
-
-function updateHoursCount(amount) {
-  let h = (parseFloat(formState.hours) || 0) + amount;
+function updateHours(v) {
+  let h = parseFloat(formState.hours) + v;
   if (h < 0) h = 0;
-  if (h > 12) h = 12; // מגבלת שעות הגיונית מקסימלית ליום עבודה
-  formState.hours = h === 0 ? "" : String(h);
+  formState.hours = h.toString();
   render();
 }
 
-function myEntriesHTML() {
-  const mine = state.entries.filter(e => e.instructor === state.user).sort((a,b)=>b.ts-a.ts);
-  if (state.loading) return `<div class="spinner">טוען...</div>`;
-  if (!mine.length) return `<div class="empty">אין דיווחים עדיין</div>`;
-  const total = mine.reduce((s,e)=>s+parseFloat(e.hours),0);
-  return `
-    <div class="stat-grid" style="grid-template-columns:1fr">
-      <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">סה"כ שעות</div></div>
-    </div>
-    <div class="card">${mine.map(e=>`
-      <div class="entry-item">
-        <div class="entry-main">
-          <div class="entry-school">${e.school}</div>
-          <div class="entry-act">${e.activity}</div>
-          <div class="entry-date">${fmtDate(e.date)}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <span class="pill">${e.hours}ש'</span>
-          <button class="delete-btn" onclick="deleteEntry('${e.id}')">✕</button>
-        </div>
-      </div>`).join("")}
-    </div>`;
-}
-
-function summaryHTML() {
-  const entries = state.entries;
-  if (state.loading) return `<div class="spinner">טוען...</div>`;
-  if (!entries.length) return `<div class="empty">אין דיווחים עדיין</div>`;
-
-  const months = [...new Set(entries.map(e=>e.date.substring(0,7)))].sort().reverse();
-  const fm = state.filterMonth || "";
-  const filtered = fm ? entries.filter(e=>e.date.startsWith(fm)) : entries;
-  const total = filtered.reduce((s,e)=>s+parseFloat(e.hours),0);
-
-  const byInst = {}; INSTRUCTORS.forEach(i=>{byInst[i]=0;}); filtered.forEach(e=>{if(byInst[e.instructor]!==undefined)byInst[e.instructor]+=parseFloat(e.hours);});
-  const maxInst = Math.max(...Object.values(byInst),1);
-
-  const bySchool = {}; filtered.forEach(e=>{bySchool[e.school]=(bySchool[e.school]||0)+parseFloat(e.hours);});
-  const schoolList = Object.entries(bySchool).sort((a,b)=>b[1]-a[1]);
-  const maxSchool = Math.max(...schoolList.map(x=>x[1]),1);
-
-  return `
-    <select class="month-sel" onchange="setFilterMonth(this.value)">
-      <option value="">כל התקופה</option>
-      ${months.map(m=>`<option value="${m}"${fm===m?" selected":""}>${monthLabel(m+"-01")} ${m.substring(0,4)}</option>`).join("")}
-    </select>
-    <div class="grand-total">
-      <span class="gt-label">סה"כ שעות לתשלום</span>
-      <span class="gt-val">${total}ש' · ₪${Math.round(total*RATE).toLocaleString()}</span>
-    </div>
-    <div class="card">
-      <div class="section-hdr"><span>לפי מנחה</span><span>שעות</span></div>
-      ${INSTRUCTORS.map(inst=>{
-        const h = byInst[inst]||0;
-        return `<div class="summary-row">
-          <div style="flex:1;min-width:0">
-            <div class="summary-name">${inst}</div>
-            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(h/maxInst*100)}%"></div></div>
-          </div>
-          <div style="min-width:80px;text-align:left">
-            <div class="summary-hours">${h}ש'</div>
-            <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
-          </div>
-        </div>`;
-      }).join("")}
-    </div>
-    <div class="card">
-      <div class="section-hdr"><span>לפי גוף</span><span>שעות</span></div>
-      ${schoolList.length===0?`<div class="empty" style="padding:12px">אין נתונים</div>`:schoolList.map(([school,h])=>`
-        <div class="summary-row">
-          <div style="flex:1;min-width:0">
-            <div class="summary-name">${school}</div>
-            <div class="bar-wrap"><div class="bar-fill bar-fill-b" style="width:${Math.round(h/maxSchool*100)}%"></div></div>
-          </div>
-          <div style="min-width:80px;text-align:left">
-            <div class="summary-hours" style="color:#2952b3">${h}ש'</div>
-            <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
-          </div>
-        </div>`).join("")}
-    </div>`;
-}
-
-// ---- ACTIONS ----
-function selectUser(name) {
-  if (name === "אורית שטרית") {
-    state.user = name;
-    state.loginSelected = null;
-    state.adminUnlocked = true;
-    loadEntries();
-    render();
-    return;
-  }
-  state.loginSelected = name;
-  state.loginError = null;
-  render();
-  setTimeout(() => { const el = document.getElementById('login-pass'); if(el) el.focus(); }, 50);
-}
-function backToNames() {
-  state.loginSelected = null;
-  state.loginError = null;
-  render();
-}
-function tryLogin() {
-  const passwords = {"מעיין זך":"001","ענת דימנט":"002","אמונה לנדאו":"003"};
-  const val = document.getElementById('login-pass') ? document.getElementById('login-pass').value : '';
-  if (val === passwords[state.loginSelected]) {
-    state.loginError = null;
-    state.user = state.loginSelected;
-    state.loginSelected = null;
-    loadEntries();
-    render();
-  } else {
-    state.loginError = "סיסמה שגויה. נסי שוב.";
-    render();
-    setTimeout(() => { const el = document.getElementById('login-pass'); if(el) { el.focus(); el.select(); } }, 50);
-  }
-}
-function logout() { state.user = null; state.tab = 0; state.loginSelected = null; state.loginError = null; render(); }
-function setTab(i) { state.tab = i; render(); }
-function setFilterMonth(v) { state.filterMonth = v; render(); }
-
-function attachEvents() {
-  ["f-date","f-school","f-act","f-free"].forEach(id=>{
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("change", e=>{
-      if(id==="f-date") formState.date=e.target.value;
-      if(id==="f-school") formState.school=e.target.value;
-      if(id==="f-act") { formState.actType=e.target.value; render(); }
-      if(id==="f-free") formState.actFree=e.target.value;
-      if(id!=="f-act") render();
-    });
-  });
-}
-
-async function submitEntry() {
-  const f = formState;
-  const actLabel = f.actType === "אחר" ? f.actFree : f.actType;
-  const entry = { id: Date.now(), instructor: state.user, date: f.date, school: f.school, activity: actLabel, hours: parseFloat(f.hours), ts: Date.now() };
-  
-  // הגנה ראשונית - דחיפה מיידית לזיכרון התצוגה המקומי
+async function save() {
+  if (!formState.school || !formState.actType || formState.hours === "0") return alert("מלאי את כל השדות");
+  const entry = {
+    id: Date.now(), instructor: state.user, date: formState.date, 
+    school: formState.school, activity: formState.actType === "אחר" ? formState.actFree : formState.actType, 
+    hours: formState.hours, ts: Date.now()
+  };
   state.entries.push(entry);
-  saved = true; 
   render();
-  
-  // ניסיון שליחה לשרת של גוגל
-  try {
-    await apiSave(entry);
-  } catch (err) {
-    console.error("שגיאה בסנכרון הנתונים מול גוגל שורט, אך הדיווח נשמר זמנית במסך.", err);
-  }
-  
-  formState = { date: getTodayDateString(), school: "", actType: "", actFree: "", hours: "" };
-  setTimeout(()=>{ saved=false; render(); }, 1500);
-}
-
-async function deleteEntry(id) {
-  const entry = state.entries.find(e=>String(e.id)===String(id));
-  if (!entry) return;
-  if (!confirm("למחוק את הדיווח?\n" + entry.school + " · " + entry.activity + " · " + entry.hours + " ש'")) return;
-  state.entries = state.entries.filter(e=>String(e.id)!==String(id));
+  const url = SCRIPT_URL + "?action=save&" + new URLSearchParams(entry).toString();
+  await fetch(url);
+  formState.hours = "0";
+  alert("נשמר בהצלחה!");
+  state.tab = 1;
   render();
-  await apiDelete(id, entry.instructor, entry.school);
-}
-
-async function loadEntries() {
-  state.loading = true; render();
-  try {
-    state.entries = await apiGet();
-  } catch(e) {
-    state.error = "שגיאה בטעינת נתונים";
-  }
-  state.loading = false; render();
 }
 
 render();
