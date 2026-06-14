@@ -322,6 +322,12 @@ function summaryHTML() {
   const byInst = {}; INSTRUCTORS.forEach(i=>{byInst[i]=0;}); filtered.forEach(e=>{if(byInst[e.instructor]!==undefined)byInst[e.instructor]+=parseFloat(e.hours);});
   const maxInst = Math.max(...Object.values(byInst),1);
 
+  // שעות שנת לימודים לכל מנחה (לצורך סל)
+  const yearByInst = {};
+  INSTRUCTORS.forEach(i=>{ yearByInst[i] = state.entries.filter(e=>e.instructor===i && isCurrentSchoolYear(e.date)).reduce((s,e)=>s+parseFloat(e.hours),0); });
+  const sy = currentSchoolYear();
+  const syLabel = `שנה"ל ${sy}–${sy+1}`;
+
   const bySchool = {}; filtered.forEach(e=>{bySchool[e.school]=(bySchool[e.school]||0)+parseFloat(e.hours);});
   const schoolList = Object.entries(bySchool).sort((a,b)=>b[1]-a[1]);
   const maxSchool = Math.max(...schoolList.map(x=>x[1]),1);
@@ -336,19 +342,41 @@ function summaryHTML() {
       <span class="gt-val">${total}ש' · ₪${Math.round(total*RATE).toLocaleString()}</span>
     </div>
     <div class="card">
-      <div class="section-hdr"><span>לפי מנחה</span><span>שעות</span></div>
+      <div class="section-hdr"><span>לפי מנחה — סל שעות ${syLabel}</span><span>שעות</span></div>
       ${INSTRUCTORS.map(inst=>{
         const h = byInst[inst]||0;
-        return `<div class="summary-row">
-          <div style="flex:1;min-width:0">
-            <div class="summary-name">${inst}</div>
-            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(h/maxInst*100)}%"></div></div>
-          </div>
-          <div style="min-width:80px;text-align:left">
-            <div class="summary-hours">${h}ש'</div>
-            <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
-          </div>
-        </div>`;
+        const yh = yearByInst[inst]||0;
+        const budget = HOUR_BUDGET[inst];
+        if (budget) {
+          const pct = Math.min(Math.round(yh/budget*100),100);
+          const over = yh > budget;
+          const warn = pct >= 85 && !over;
+          const barColor = over ? "#c00000" : warn ? "#e67e22" : "#2B4BAA";
+          const remaining = budget - yh;
+          return `<div class="summary-row" style="flex-direction:column;align-items:stretch;gap:4px;padding:10px 0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="summary-name">${inst}</div>
+              <div style="font-size:13px;font-weight:700;color:${barColor}">${yh} / ${budget} ש'</div>
+            </div>
+            <div style="height:8px;background:#f0f0f0;border-radius:6px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${barColor};border-radius:6px;transition:.3s"></div>
+            </div>
+            <div style="font-size:11px;color:${over?'#c00000':warn?'#e67e22':'#999'}">
+              ${over ? `⚠️ חריגה של ${Math.abs(remaining)} שעות` : warn ? `⚠️ נשארו ${remaining} שעות בלבד` : `נשארו ${remaining} שעות`}
+            </div>
+          </div>`;
+        } else {
+          return `<div class="summary-row">
+            <div style="flex:1;min-width:0">
+              <div class="summary-name">${inst}</div>
+              <div style="font-size:11px;color:#999">ללא סל מוגדר</div>
+            </div>
+            <div style="min-width:80px;text-align:left">
+              <div class="summary-hours">${h}ש'</div>
+              <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
+            </div>
+          </div>`;
+        }
       }).join("")}
     </div>
     <div class="card">
