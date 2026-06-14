@@ -110,7 +110,12 @@ function schoolYearOf(dateStr) {
   return m >= 8 ? y : y - 1;
 }
 function currentSchoolYear() { return schoolYearOf(new Date().toISOString().split("T")[0]); }
-function isCurrentSchoolYear(dateStr) { return schoolYearOf(dateStr) === currentSchoolYear(); }
+function isCurrentSchoolYear(dateStr) {
+  // הסל מתחיל מאוגוסט 2026 — לא לספור שעות לפני כן
+  const d = new Date(dateStr);
+  if (d < new Date("2026-08-01")) return false;
+  return schoolYearOf(dateStr) === currentSchoolYear();
+}
 
 function fmtDate(d) { const p = d.split("-"); return `${p[2]}/${p[1]}`; }
 function monthLabel(d) { return ["","ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"][parseInt(d.split("-")[1])]; }
@@ -262,7 +267,7 @@ function myEntriesHTML() {
   const budget = HOUR_BUDGET[state.user];
   const yearHours = mine.filter(e=>isCurrentSchoolYear(e.date)).reduce((s,e)=>s+parseFloat(e.hours),0);
   const sy = currentSchoolYear();
-  const syLabel = `שנה"ל ${sy}–${sy+1}`;
+  const syLabel = `סל תשפ"ז`;
 
   let budgetHTML = "";
   if (budget) {
@@ -326,7 +331,7 @@ function summaryHTML() {
   const yearByInst = {};
   INSTRUCTORS.forEach(i=>{ yearByInst[i] = state.entries.filter(e=>e.instructor===i && isCurrentSchoolYear(e.date)).reduce((s,e)=>s+parseFloat(e.hours),0); });
   const sy = currentSchoolYear();
-  const syLabel = `שנה"ל ${sy}–${sy+1}`;
+  const syLabel = `סל תשפ"ז`;
 
   const bySchool = {}; filtered.forEach(e=>{bySchool[e.school]=(bySchool[e.school]||0)+parseFloat(e.hours);});
   const schoolList = Object.entries(bySchool).sort((a,b)=>b[1]-a[1]);
