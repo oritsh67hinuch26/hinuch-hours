@@ -94,6 +94,24 @@ const ACTIVITIES = ["יום הדרכה","פגישות עבודה","אחר"];
 const RATE = 440;
 const TABS = ["+ דיווח", "הדיווחים שלי", "ריכוז", "ניהול"];
 
+// סל שעות שנתי לכל מנחה (null = ללא סל)
+const HOUR_BUDGET = {
+  "מעיין זך":    150,
+  "ענת דימנט":   180,
+  "גליה דהן":    120,
+  "שרון שפירא":  150,
+  "אמונה לנדאו": null,
+  "אורית שטרית": null
+};
+
+function schoolYearOf(dateStr) {
+  const d = new Date(dateStr);
+  const y = d.getFullYear(), m = d.getMonth() + 1;
+  return m >= 9 ? y : y - 1;
+}
+function currentSchoolYear() { return schoolYearOf(new Date().toISOString().split("T")[0]); }
+function isCurrentSchoolYear(dateStr) { return schoolYearOf(dateStr) === currentSchoolYear(); }
+
 function fmtDate(d) { const p = d.split("-"); return `${p[2]}/${p[1]}`; }
 function monthLabel(d) { return ["","ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"][parseInt(d.split("-")[1])]; }
 
@@ -239,9 +257,42 @@ function myEntriesHTML() {
   if (state.loading) return `<div class="spinner">טוען...</div>`;
   if (!mine.length) return `<div class="empty">אין דיווחים עדיין</div>`;
   const total = mine.reduce((s,e)=>s+parseFloat(e.hours),0);
+
+  // סל שנתי — רק שעות משנת הלימודים הנוכחית
+  const budget = HOUR_BUDGET[state.user];
+  const yearHours = mine.filter(e=>isCurrentSchoolYear(e.date)).reduce((s,e)=>s+parseFloat(e.hours),0);
+  const sy = currentSchoolYear();
+  const syLabel = `שנה"ל ${sy}–${sy+1}`;
+
+  let budgetHTML = "";
+  if (budget) {
+    const pct = Math.min(Math.round(yearHours / budget * 100), 100);
+    const remaining = budget - yearHours;
+    const overBudget = yearHours > budget;
+    const barColor = overBudget ? "#c00000" : pct >= 85 ? "#e67e22" : "#2B4BAA";
+    budgetHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600;color:#333">סל שעות ${syLabel}</div>
+        <div style="font-size:13px;font-weight:700;color:${barColor}">${yearHours} / ${budget} ש'</div>
+      </div>
+      <div style="height:10px;background:#f0f0f0;border-radius:6px;overflow:hidden;margin-bottom:6px">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:6px;transition:.3s"></div>
+      </div>
+      <div style="font-size:12px;color:${overBudget?'#c00000':'#666'};text-align:center">
+        ${overBudget
+          ? `⚠️ עברת את הסל ב־${Math.abs(remaining)} שעות`
+          : pct >= 85
+            ? `⚠️ נשארו רק ${remaining} שעות מהסל`
+            : `נשארו ${remaining} שעות מתוך הסל`}
+      </div>
+    </div>`;
+  }
+
   return `
+    ${budgetHTML}
     <div class="stat-grid" style="grid-template-columns:1fr">
-      <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">סה"כ שעות</div></div>
+      <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">סה"כ שעות (כל הזמן)</div></div>
     </div>
     <div class="card">${mine.map(e=>`
       <div class="entry-item">
@@ -391,7 +442,7 @@ function backToNames() {
   render();
 }
 function tryLogin() {
-  const passwords = {"מעיין זך":"001","ענת דימנט":"002","אמונה לנדאו":"003"};
+  const passwords = {"מעיין זך":"001","ענת דימנט":"002","אמונה לנדאו":"003","שרון שפירא":"004","גליה דהן":"005"};
   const val = document.getElementById('login-pass') ? document.getElementById('login-pass').value : '';
   if (val === passwords[state.loginSelected]) {
     state.loginError = null;
@@ -434,7 +485,24 @@ function attachEvents() {
 async function submitEntry() {
   const f = formState;
   const actLabel = f.actType === "אחר" ? f.actFree : f.actType;
-  const entry = { id: Date.now(), instructor: state.user, date: f.date, school: f.school, activity: actLabel, hours: parseFloat(f.hours), ts: Date.now() };
+  const newHours = parseFloat(f.hours);
+
+  // בדיקת סל שעות
+  const budget = HOUR_BUDGET[state.user];
+  if (budget) {
+    const yearHours = state.entries
+      .filter(e => e.instructor === state.user && isCurrentSchoolYear(e.date))
+      .reduce((s,e) => s + parseFloat(e.hours), 0);
+    const afterSave = yearHours + newHours;
+    if (afterSave > budget) {
+      const over = afterSave - budget;
+      if (!confirm(`⚠️ שמירה זו תעביר אותך מעל הסל!\nשנת הלימודים: ${yearHours} + ${newHours} = ${afterSave} שעות (סל: ${budget})\nתחרגי ב־${over} שעות.\n\nלהמשיך בכל זאת?`)) return;
+    } else if (afterSave / budget >= 0.85) {
+      alert(`⚠️ שימי לב — לאחר שמירה זו נשארו לך רק ${budget - afterSave} שעות מתוך הסל השנתי.`);
+    }
+  }
+
+  const entry = { id: Date.now(), instructor: state.user, date: f.date, school: f.school, activity: actLabel, hours: newHours, ts: Date.now() };
   saved = true; render();
   await apiSave(entry);
   state.entries.push(entry);
