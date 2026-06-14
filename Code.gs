@@ -41,7 +41,7 @@ function getSchoolYear(dateVal) {
   const y = d.getFullYear();
   const m = d.getMonth() + 1; // 1–12
   // ספטמבר (9) ואילך = שנה"ל הבאה
-  if (m >= 9) return y + "-" + (y + 1);
+  if (m >= 8) return y + "-" + (y + 1);
   else        return (y - 1) + "-" + y;
 }
 
@@ -361,7 +361,7 @@ function updateYearlySummary() {
     }
 
     // סיכום שנתי
-    sheet.appendRow(["סהכ שנה"ל " + yr, "", "", "", grandTotal]);
+    sheet.appendRow(["סהכ שנה״ל " + yr, "", "", "", grandTotal]);
     const lr = sheet.getLastRow();
     sheet.getRange(lr, 1, 1, 5).setBackground("#1a2a5e").setFontColor("#ffffff").setFontWeight("bold");
 

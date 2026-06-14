@@ -107,7 +107,7 @@ const HOUR_BUDGET = {
 function schoolYearOf(dateStr) {
   const d = new Date(dateStr);
   const y = d.getFullYear(), m = d.getMonth() + 1;
-  return m >= 9 ? y : y - 1;
+  return m >= 8 ? y : y - 1;
 }
 function currentSchoolYear() { return schoolYearOf(new Date().toISOString().split("T")[0]); }
 function isCurrentSchoolYear(dateStr) { return schoolYearOf(dateStr) === currentSchoolYear(); }
