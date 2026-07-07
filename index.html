@@ -537,10 +537,18 @@ async function submitEntry() {
 
   const entry = { id: Date.now(), instructor: state.user, date: f.date, school: f.school, activity: actLabel, hours: newHours, ts: Date.now() };
   saved = true; render();
-  await apiSave(entry);
-  state.entries.push(entry);
-  formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "" };
-  setTimeout(()=>{ saved=false; render(); }, 1500);
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000));
+    await Promise.race([apiSave(entry), timeout]);
+    state.entries.push(entry);
+  } catch (err) {
+    console.error("apiSave failed:", err);
+  } finally {
+    // תמיד לאפס את הטופס - גם אם השמירה נכשלה/נתקעה - כדי שאפשר יהיה
+    // להמשיך ולהזין דיווח לגוף הבא ברצף בלי לסגור את האפליקציה
+    formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "" };
+    setTimeout(()=>{ saved=false; render(); }, 1500);
+  }
 }
 
 async function deleteEntry(id) {
