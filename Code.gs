@@ -33,6 +33,25 @@ function getMonthKey(dateVal) {
 }
 
 // ====================================================
+// פונקציית עזר: נרמול תאריך למחרוזת YYYY-MM-DD נקייה
+// (Sheets לפעמים ממיר תאריך שנכתב כטקסט לאובייקט Date אמיתי,
+//  ואז getValues() מחזיר Date ולא את המחרוזת המקורית)
+// ====================================================
+function normalizeDateStr(dateVal) {
+  if (!dateVal) return "";
+  if (dateVal instanceof Date) {
+    const y = dateVal.getFullYear();
+    const m = String(dateVal.getMonth() + 1).padStart(2, "0");
+    const d = String(dateVal.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(dateVal);
+  // אם זו כבר מחרוזת ISO (עם או בלי שעה) - לקחת רק את חלק התאריך
+  const match = s.match(/^\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : s;
+}
+
+// ====================================================
 // פונקציית עזר: שנת לימודים מתאריך (ספטמבר–אוגוסט)
 // ====================================================
 function getSchoolYear(dateVal) {
@@ -517,7 +536,7 @@ function doGet(e) {
         entries.push({
           id:         String(row[0]),
           instructor: row[1],
-          date:       row[2],
+          date:       normalizeDateStr(row[2]),
           school:     row[3],
           activity:   row[4],
           hours:      row[5],
