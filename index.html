@@ -170,7 +170,7 @@ function render() {
   root.innerHTML = `
     <div class="app">
       <div class="header">
-        <img src="logo.png" style="height:40px;object-fit:contain">
+        <img src="icon.png" style="height:40px;object-fit:contain">
         <button class="header-user" onclick="logout()" title="החלף משתמש">${state.user.split(" ").map(w=>w[0]).join("").substring(0,2)}</button>
       </div>
       <div class="tabs">${(state.user==="אורית שטרית"?["+ דיווח","הדיווחים שלי","ריכוז","ניהול"]:["+ דיווח","הדיווחים שלי"]).map((t,i)=>`<button class="tab${state.tab===i?" active":""}" onclick="setTab(${i})">${t}</button>`).join("")}</div>
@@ -182,7 +182,7 @@ function render() {
 function loginHTML() {
   const sel = state.loginSelected;
   const err = state.loginError;
-  const logo = `<div class="login-logo" style="background:transparent;width:auto;height:auto;border-radius:0"><img src="logo.png" style="height:60px;object-fit:contain"></div>`;
+  const logo = `<div class="login-logo" style="background:transparent;width:auto;height:auto;border-radius:0"><img src="icon.png" style="height:60px;object-fit:contain"></div>`;
   if (!sel) {
     return `<div class="login-wrap">
       ${logo}
