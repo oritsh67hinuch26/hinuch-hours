@@ -5,7 +5,7 @@ const SUMMARY_SHEET = "סיכום פיננסי";
 const MONTHLY_SUMMARY_SHEET = "ריכוז חודשי";
 const YEARLY_SUMMARY_SHEET = "ריכוז שנתי";
 const INSTRUCTORS = ["אורית שטרית","מעיין זך","ענת דימנט","אמונה לנדאו","שרון שפירא","גליה דהן"];
-const SCHOOLS = ["סלעית","רמת כרמים","שבילי רעות","יחדיו","נתיבות","עלי זהב","אגף חינוך באר טוביה","תיכון באר טוביה","שדות- באר טוביה","ייעוץ לחינוך ישראלי"];
+const SCHOOLS = ["סלעית","שדות","יד חזון","עלי זהב","חטיבה א","חטיבה ב","תיכון באר טוביה","אגף חינוך באר טוביה","יחדיו","שבילי רעות","ייעוץ לחינוך ישראלי"];
 const VISIBLE_HEADERS = ["מנחה","תאריך","גוף","פעילות","שעות"];
 const ALL_HEADERS = ["מזהה","מנחה","תאריך","גוף","פעילות","שעות","חותמת זמן","סטטוס"];
 const MONTH_NAMES = ["","ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
@@ -480,7 +480,34 @@ function ensureAllSheets() {
   SCHOOLS.forEach(s => getOrCreateSheet(s, "#1565C0"));
 }
 
-function doGet(e) {
+// ====================================================
+// הרצה חד-פעמית לתחילת שנה"ל תשפ"ז:
+// מעבירה לארכיון (משנה שם) את הגיליונות הישנים של גופים
+// שחוזרים באותו שם השנה, כדי שהנתונים החדשים יתחילו בגיליון
+// נקי ולא יתערבבו עם הנתונים הישנים. אגף חינוך באר טוביה
+// לא מוזז - הוא ממשיך לצבור נתונים ברצף כרגיל.
+// יש להריץ פעם אחת מעורך ה-Apps Script (Run > archiveSchoolsForNewYear)
+// ====================================================
+function archiveSchoolsForNewYear() {
+  const namesToArchive = ["סלעית", "שבילי רעות", "יחדיו", "עלי זהב", "תיכון באר טוביה", "ייעוץ לחינוך ישראלי"];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const archived = [];
+  const skipped = [];
+  namesToArchive.forEach(name => {
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) { skipped.push(name + " (לא נמצא)"); return; }
+    const newName = name + " (עד תשפ\"ו)";
+    if (ss.getSheetByName(newName)) { skipped.push(name + " (כבר קיים ארכיון בשם הזה)"); return; }
+    sheet.setName(newName);
+    archived.push(name + " -> " + newName);
+  });
+  Logger.log("הועברו לארכיון:\n" + archived.join("\n"));
+  if (skipped.length) Logger.log("דולגו:\n" + skipped.join("\n"));
+  ensureAllSheets(); // יוצר גיליונות חדשים ונקיים לכל גופי תשפ"ז
+  return { archived, skipped };
+}
+
+
   try {
     if (e.parameter && e.parameter.action === "save") {
       const data = {
