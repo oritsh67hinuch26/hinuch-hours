@@ -88,7 +88,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJe1M-ZnlYE_Ws-wzvU
 // ====================================================
 
 const INSTRUCTORS = ["אורית שטרית","מעיין זך","ענת דימנט","אמונה לנדאו","שרון שפירא","גליה דהן"];
-const SCHOOLS = ["סלעית","שדות","יד חזון","עלי זהב","חטיבה א","חטיבה ב","תיכון באר טוביה","אגף חינוך באר טוביה","יחדיו","שבילי רעות","ייעוץ לחינוך ישראלי"];
+const SCHOOLS = ["סלעית","שדות","עלי זהב","חטיבה א","חטיבה ב","תיכון באר טוביה","אגף חינוך באר טוביה","יחדיו","שבילי רעות","ייעוץ לחינוך ישראלי"];
 const ACTIVITIES = ["יום הדרכה","פגישות עבודה","אחר"];
 const RATE = 440;
 const TABS = ["+ דיווח", "הדיווחים שלי", "ריכוז", "ניהול"];
@@ -115,6 +115,23 @@ function isCurrentSchoolYear(dateStr) {
   if (d < new Date("2026-08-01")) return false;
   return schoolYearOf(dateStr) === currentSchoolYear();
 }
+
+function localISO(d) {
+  const x = d || new Date();
+  return x.getFullYear() + "-" + String(x.getMonth()+1).padStart(2,"0") + "-" + String(x.getDate()).padStart(2,"0");
+}
+function daysAgoISO(n) { const d = new Date(); d.setDate(d.getDate()-n); return localISO(d); }
+function hebDayLabel(iso) {
+  if (!iso) return "";
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  const days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+  let rel = "";
+  if (iso === localISO()) rel = " (היום)";
+  else if (iso === daysAgoISO(1)) rel = " (אתמול)";
+  return "יום " + days[dt.getDay()] + ", " + d + "/" + m + "/" + y + rel;
+}
+function setFormDate(v) { formState.date = v; render(); }
 
 function fmtDate(d) {
   if (!d) return "";
@@ -147,7 +164,7 @@ async function apiDelete(id, instructor, school) {
 
 // ---- STATE ----
 let state = { user: null, tab: 0, entries: [], loading: false, error: null, adminUnlocked: false, loginSelected: null, loginError: null };
-let formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "" };
+let formState = { date: "", school: "", actType: "", actFree: "", hours: "" };
 let saved = false;
 
 function createInvoice() {
@@ -220,10 +237,19 @@ function tabContent() {
 function addEntryHTML() {
   if (saved) return `<div class="card saved-msg"><div style="font-size:40px;margin-bottom:12px">✓</div><div style="font-size:16px;font-weight:500;color:#2B4BAA">נשמר בהצלחה!</div></div>`;
   const f = formState;
-  const canSave = f.school && f.actType && (f.actType !== "אחר" || f.actFree.trim()) && f.hours;
+  const canSave = f.date && f.date <= localISO() && f.school && f.actType && (f.actType !== "אחר" || f.actFree.trim()) && f.hours;
   const priceHint = "";
   return `<div class="card">
-    <div class="form-group"><label>תאריך</label><input type="date" id="f-date" value="${f.date}"></div>
+    <div class="form-group"><label>מתי התקיימה הפעילות?</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button type="button" class="btn" style="flex:1;padding:8px;${f.date===localISO()?'background:#2B4BAA;color:#fff':'background:#EEF1FA;color:#2B4BAA'}" onclick="setFormDate(localISO())">היום</button>
+        <button type="button" class="btn" style="flex:1;padding:8px;${f.date===daysAgoISO(1)?'background:#2B4BAA;color:#fff':'background:#EEF1FA;color:#2B4BAA'}" onclick="setFormDate(daysAgoISO(1))">אתמול</button>
+      </div>
+      <input type="date" id="f-date" value="${f.date}" max="${localISO()}">
+      ${f.date
+        ? `<div style="margin-top:6px;font-size:15px;font-weight:600;color:#2B4BAA">📅 ${hebDayLabel(f.date)}</div>`
+        : `<div style="margin-top:6px;font-size:13px;color:#C0392B">יש לבחור את התאריך שבו הפעילות התקיימה (לא את תאריך הדיווח)</div>`}
+    </div>
     <div class="form-group"><label>גוף</label>
       <select id="f-school">
         <option value="">בחר גוף...</option>
@@ -427,7 +453,7 @@ function adminHTML() {
     <div class="filter-row">
       <select onchange="setFilterSchool(this.value)">
         <option value="">כל הגופים</option>
-        ${SCHOOLS.map(s=>`<option value="${s}"${fs===s?" selected":""}>${s}</option>`).join("")}
+        ${[...new Set([...SCHOOLS, ...state.entries.map(e=>e.school).filter(Boolean)])].map(s=>`<option value="${s}"${fs===s?" selected":""}>${s}</option>`).join("")}
       </select>
       <select onchange="setFilterMonthAdmin(this.value)">
         <option value="">כל החודשים</option>
@@ -524,6 +550,8 @@ async function submitEntry() {
   const f = formState;
   const actLabel = f.actType === "אחר" ? f.actFree : f.actType;
   const newHours = parseFloat(f.hours);
+  if (!f.date || f.date > localISO()) { alert("יש לבחור תאריך תקין (לא עתידי)"); return; }
+  if (!confirm(`לאשר את הדיווח?\n\n📅 ${hebDayLabel(f.date)}\n🏫 ${f.school}\n⏱ ${newHours} שעות`)) return;
 
   // בדיקת סל שעות
   const budget = HOUR_BUDGET[state.user];
@@ -551,7 +579,7 @@ async function submitEntry() {
   } finally {
     // תמיד לאפס את הטופס - גם אם השמירה נכשלה/נתקעה - כדי שאפשר יהיה
     // להמשיך ולהזין דיווח לגוף הבא ברצף בלי לסגור את האפליקציה
-    formState = { date: new Date().toISOString().split("T")[0], school: "", actType: "", actFree: "", hours: "" };
+    formState = { date: "", school: "", actType: "", actFree: "", hours: "" };
     setTimeout(()=>{ saved=false; render(); }, 1500);
   }
 }
