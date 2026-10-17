@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="חינוך ישראלי">
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
   <title>חינוך ישראלי — דיווח שעות</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -234,12 +235,33 @@ function tabContent() {
   return addEntryHTML();
 }
 
+
+// ===== הנחיה להתקנה באייפון =====
+function iosInstallBannerHTML() {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const installed = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem("iosBannerDismissed") === "1"; } catch(_) {}
+  if (!isIOS || installed || dismissed) return "";
+  const inSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|GSA|FBAN|FBAV|Instagram|Line/.test(ua);
+  const steps = inSafari
+    ? `1. לוחצים על כפתור השיתוף <b>⬆️</b> (בתחתית המסך)<br>2. גוללים ובוחרים <b>"הוספה למסך הבית"</b><br>3. לוחצים <b>"הוסף"</b>`
+    : `הקישור נפתח מתוך אפליקציה אחרת (וואטסאפ / ג׳ימייל וכד׳).<br>1. לוחצים על <b>⋯</b> או על סמל המצפן ובוחרים <b>"פתח בספארי"</b><br>2. בספארי: כפתור השיתוף <b>⬆️</b> ← <b>"הוספה למסך הבית"</b>`;
+  return `<div class="card" style="background:#FFF8E1;border:1px solid #F5C451;margin-bottom:12px;font-size:14px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:4px">📲 להוסיף את האפליקציה למסך הבית</div>
+    ${steps}
+    <div style="text-align:left;margin-top:6px"><button onclick="dismissIosBanner()" style="background:none;border:none;color:#888;font-size:13px;cursor:pointer;font-family:inherit">לא עכשיו ✕</button></div>
+  </div>`;
+}
+function dismissIosBanner() { try { localStorage.setItem("iosBannerDismissed","1"); } catch(_) {} render(); }
+
 function addEntryHTML() {
   if (saved) return `<div class="card saved-msg"><div style="font-size:40px;margin-bottom:12px">✓</div><div style="font-size:16px;font-weight:500;color:#2B4BAA">נשמר בהצלחה!</div></div>`;
   const f = formState;
   const canSave = f.date && f.date <= localISO() && f.school && f.actType && (f.actType !== "אחר" || f.actFree.trim()) && f.hours;
   const priceHint = "";
-  return `<div class="card">
+  return iosInstallBannerHTML() + `<div class="card">
     <div class="form-group"><label>מתי התקיימה הפעילות?</label>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <button type="button" class="btn" style="flex:1;padding:8px;${f.date===localISO()?'background:#2B4BAA;color:#fff':'background:#EEF1FA;color:#2B4BAA'}" onclick="setFormDate(localISO())">היום</button>
