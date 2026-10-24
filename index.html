@@ -116,7 +116,21 @@ const INSTRUCTORS = ["אורית שטרית","מעיין זך","ענת דימנ�
 const SCHOOLS = ["סלעית","שדות","עלי זהב","חטיבה א","חטיבה ב","שש שנתי","אגף חינוך באר טוביה","יחדיו","שבילי רעות","רמת כרמים","ייעוץ לחינוך ישראלי"];
 const ACTIVITIES = ["יום הדרכה","פגישות עבודה","אחר"];
 const RATE = 440;
-const TABS = ["+ דיווח", "הדיווחים שלי", "ריכוז", "ניהול"];
+const TABS = ["+ דיווח", "הדיווחים שלי", "ריכוז"];
+
+// סל שעות שנתי לכל גוף, נספר מ-1/9
+const SCHOOL_BUDGET = {
+  "אגף חינוך באר טוביה": 250,
+  "שבילי רעות":          180,
+  "חטיבה א":             300,
+  "חטיבה ב":             300,
+  "שש שנתי":             130,
+  "יחדיו":               120,
+  "שדות":                250,
+  "רמת כרמים":           130,
+  "סלעית":               120,
+  "עלי זהב":             100
+};
 
 // סל שעות שנתי לכל מנחה (null = ללא סל)
 const HOUR_BUDGET = {
@@ -132,13 +146,13 @@ const HOUR_BUDGET = {
 function schoolYearOf(dateStr) {
   const d = new Date(dateStr);
   const y = d.getFullYear(), m = d.getMonth() + 1;
-  return m >= 8 ? y : y - 1;
+  return m >= 9 ? y : y - 1;
 }
 function currentSchoolYear() { return schoolYearOf(new Date().toISOString().split("T")[0]); }
 function isCurrentSchoolYear(dateStr) {
-  // הסל מתחיל מאוגוסט 2026 — לא לספור שעות לפני כן
+  // שנת הלימודים והסל נספרים מ-1 בספטמבר
   const d = new Date(dateStr);
-  if (d < new Date("2026-08-01")) return false;
+  if (d < new Date("2026-09-01")) return false;
   return schoolYearOf(dateStr) === currentSchoolYear();
 }
 
@@ -193,20 +207,6 @@ let state = { user: null, tab: 0, entries: [], loading: false, error: null, admi
 let formState = { date: "", school: "", hours: "" };
 let saved = false;
 
-function createInvoice() {
-  const fs = state.filterSchool || "";
-  const fm = state.filterMonth || "";
-  const filtered = state.entries.filter(e =>
-    (!fs || e.school === fs) && (!fm || e.date.startsWith(fm))
-  );
-  const total = filtered.reduce((s,e) => s + parseFloat(e.hours), 0);
-  const month = fm ? monthLabel(fm + "-01") + " " + fm.substring(0,4) : "לא צוין";
-  const msg = "צרי דרישת תשלום עבור " + fs + " לחודש " + month + ". הנתונים:\n" +
-    filtered.map(e => fmtDate(e.date) + " | " + e.instructor + " | " + e.activity + " | " + e.hours + " ש'").join("\n") +
-    "\n\nסה\"כ: " + total + " שעות = ₪" + Math.round(total * RATE).toLocaleString();
-  sendPrompt(msg);
-}
-
 function render() {
   const root = document.getElementById("root");
   if (!state.user) { root.innerHTML = loginHTML(); return; }
@@ -219,7 +219,7 @@ function render() {
         </div>
         <button class="hdr-switch" onclick="logout()">החלפה</button>
       </div>
-      <div class="tabs">${(state.user==="אורית שטרית"?["+ דיווח","הדיווחים שלי","ריכוז","ניהול"]:["+ דיווח","הדיווחים שלי"]).map((t,i)=>`<button class="tab${state.tab===i?" active":""}" onclick="setTab(${i})">${t}</button>`).join("")}</div>
+      <div class="tabs">${(state.user==="אורית שטרית"?["+ דיווח","הדיווחים שלי","ריכוז"]:["+ דיווח","הדיווחים שלי"]).map((t,i)=>`<button class="tab${state.tab===i?" active":""}" onclick="setTab(${i})">${t}</button>`).join("")}</div>
       <div class="content">${tabContent()}</div>
     </div>`;
   attachEvents();
@@ -259,7 +259,6 @@ function tabContent() {
   if (state.tab === 0) return addEntryHTML();
   if (state.tab === 1) return myEntriesHTML();
   if (state.tab === 2 && state.user==="אורית שטרית") return summaryHTML();
-  if (state.tab === 3 && state.user==="אורית שטרית") return adminHTML();
   return addEntryHTML();
 }
 
@@ -395,7 +394,7 @@ function summaryHTML() {
 
   const months = [...new Set(entries.map(e=>e.date.substring(0,7)))].sort().reverse();
   const fm = state.filterMonth || "";
-  const filtered = fm ? entries.filter(e=>e.date.startsWith(fm)) : entries;
+  const filtered = fm ? entries.filter(e=>e.date.startsWith(fm)) : entries.filter(e=>isCurrentSchoolYear(e.date));
   const total = filtered.reduce((s,e)=>s+parseFloat(e.hours),0);
 
   const byInst = {}; INSTRUCTORS.forEach(i=>{byInst[i]=0;}); filtered.forEach(e=>{if(byInst[e.instructor]!==undefined)byInst[e.instructor]+=parseFloat(e.hours);});
@@ -413,15 +412,15 @@ function summaryHTML() {
 
   return `
     <select class="month-sel" onchange="setFilterMonth(this.value)">
-      <option value="">כל התקופה</option>
+      <option value="">מתחילת השנה (1/9)</option>
       ${months.map(m=>`<option value="${m}"${fm===m?" selected":""}>${monthLabel(m+"-01")} ${m.substring(0,4)}</option>`).join("")}
     </select>
     <div class="grand-total">
-      <span class="gt-label">סה"כ שעות לתשלום</span>
-      <span class="gt-val">${total}ש' · ₪${Math.round(total*RATE).toLocaleString()}</span>
+      <span class="gt-label">סה"כ שעות</span>
+      <span class="gt-val">${total} שעות</span>
     </div>
     <div class="card">
-      <div class="section-hdr"><span>לפי מנחה — סל שעות ${syLabel}</span><span>שעות</span></div>
+      <div class="section-hdr"><span>לפי מנחה — ${syLabel}, מ-1/9</span><span>שעות</span></div>
       ${INSTRUCTORS.map(inst=>{
         const h = byInst[inst]||0;
         const yh = yearByInst[inst]||0;
@@ -452,75 +451,33 @@ function summaryHTML() {
             </div>
             <div style="min-width:80px;text-align:left">
               <div class="summary-hours">${h}ש'</div>
-              <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
+              
             </div>
           </div>`;
         }
       }).join("")}
     </div>
     <div class="card">
-      <div class="section-hdr"><span>לפי גוף</span><span>שעות</span></div>
-      ${schoolList.length===0?`<div class="empty" style="padding:12px">אין נתונים</div>`:schoolList.map(([school,h])=>`
-        <div class="summary-row">
-          <div style="flex:1;min-width:0">
-            <div class="summary-name">${school}</div>
-            <div class="bar-wrap"><div class="bar-fill bar-fill-b" style="width:${Math.round(h/maxSchool*100)}%"></div></div>
-          </div>
-          <div style="min-width:80px;text-align:left">
-            <div class="summary-hours" style="color:#2952b3">${h}ש'</div>
-            <div class="summary-amount">₪${Math.round(h*RATE).toLocaleString()}</div>
-          </div>
-        </div>`).join("")}
+      <div class="section-hdr"><span>לפי גוף — ${syLabel}, מ-1/9</span><span>שעות</span></div>
+      ${(()=>{
+        const names=[...new Set([...Object.keys(SCHOOL_BUDGET), ...schoolList.map(x=>x[0])])];
+        const yearBySchool={}; names.forEach(n=>{ yearBySchool[n]=state.entries.filter(e=>e.school===n && isCurrentSchoolYear(e.date)).reduce((t,e)=>t+parseFloat(e.hours),0); });
+        return names.map(n=>{
+          const h=bySchool[n]||0, yh=yearBySchool[n], b=SCHOOL_BUDGET[n];
+          if (!b) return `<div class="summary-row"><div style="flex:1;min-width:0"><div class="summary-name">${n}</div><div style="font-size:13px;color:#4a5470">ללא סל מוגדר</div></div><div class="summary-hours">${h} ש׳</div></div>`;
+          const pct=Math.min(Math.round(yh/b*100),100), over=yh>b, warn=pct>=85&&!over;
+          const color=over?"#a0352b":warn?"#c26a12":"#2B4BAA";
+          return `<div class="summary-row" style="flex-direction:column;align-items:stretch;gap:4px;padding:10px 0">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div class="summary-name">${n}${fm?` <span style="font-weight:400;color:#4a5470">· ${h} ש׳ בחודש</span>`:""}</div>
+              <div style="font-size:14px;font-weight:700;color:${color};white-space:nowrap">${yh} / ${b} ש׳</div>
+            </div>
+            <div style="height:8px;background:#e9edf8;border-radius:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color};border-radius:6px"></div></div>
+            <div style="font-size:13px;color:${over||warn?color:'#4a5470'}">${over?`חריגה של ${yh-b} שעות`:`נשארו ${b-yh} שעות`}</div>
+          </div>`;
+        }).join("");
+      })()}
     </div>`;
-}
-
-function adminHTML() {
-  if (!state.adminUnlocked) return `
-    <div class="card" style="text-align:center;padding:40px 20px">
-      <div style="font-size:32px;margin-bottom:16px">🔒</div>
-      <div style="font-size:15px;font-weight:500;margin-bottom:20px;color:#333">אזור מנהל</div>
-      <div class="form-group">
-        <input type="password" id="admin-pass" placeholder="סיסמה" style="text-align:center;font-size:18px;letter-spacing:4px">
-      </div>
-      <button class="btn btn-primary" onclick="checkAdminPass()" style="margin-top:8px">כניסה</button>
-    </div>`;
-  if (state.loading) return `<div class="spinner">טוען...</div>`;
-  if (!state.entries.length) return `<div class="empty">אין דיווחים עדיין</div>`;
-
-  const months = [...new Set(state.entries.map(e=>e.date.substring(0,7)))].sort().reverse();
-  const fs = state.filterSchool||"", fm = state.filterMonth||"";
-  const filtered = state.entries.filter(e=>(!fs||e.school===fs)&&(!fm||e.date.startsWith(fm)));
-  const total = filtered.reduce((s,e)=>s+parseFloat(e.hours),0);
-
-  return `
-    <div class="filter-row">
-      <select onchange="setFilterSchool(this.value)">
-        <option value="">כל הגופים</option>
-        ${[...new Set([...SCHOOLS, ...state.entries.map(e=>e.school).filter(Boolean)])].map(s=>`<option value="${s}"${fs===s?" selected":""}>${s}</option>`).join("")}
-      </select>
-      <select onchange="setFilterMonthAdmin(this.value)">
-        <option value="">כל החודשים</option>
-        ${months.map(m=>`<option value="${m}"${fm===m?" selected":""}>${monthLabel(m+"-01")} ${m.substring(0,4)}</option>`).join("")}
-      </select>
-    </div>
-    <div class="total-bar">
-      <span style="font-size:13px;opacity:.85">סה"כ שעות</span>
-      <span style="font-size:17px;font-weight:600">${total}ש' · ₪${Math.round(total*RATE).toLocaleString()}</span>
-    </div>
-    <div class="card">
-      ${filtered.map(e=>`
-        <div class="admin-entry">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><span style="font-size:13px;font-weight:500">${e.instructor}</span><span style="font-size:12px;color:#888"> · ${e.school}</span></div>
-            <span class="pill">${e.hours}ש'</span>
-          </div>
-          <div style="font-size:12px;color:#888;margin-top:3px">${e.activity} · ${fmtDate(e.date)}</div>
-        </div>`).join("")}
-    </div>
-    ${fs && fm ? `
-    <button class="btn btn-primary" style="margin-top:8px" onclick="createInvoice()">
-      📄 צור דרישת תשלום — ${fs} · ${monthLabel(fm+'-01')}
-    </button>` : `<div style="background:#f0f4ff;border-radius:8px;padding:12px;font-size:13px;color:#555;text-align:center;margin-top:8px">בחרי גוף וחודש כדי לצור דרישת תשלום</div>`}`;
 }
 
 // ---- ACTIONS ----
