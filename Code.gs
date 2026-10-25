@@ -80,6 +80,7 @@ function collectAllEntries() {
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][7] !== "active") continue;
       entries.push({
+        id:         String(rows[i][0]),
         instructor: rows[i][1],
         date:       rows[i][2],
         school:     rows[i][3],
@@ -219,6 +220,83 @@ const RENAME_START = "2026-08"; // שינויי שם של גופים חלים ע
 const BUDGET_SHEET = "סלים ויתרות";
 const OBSOLETE_SHEETS = ["פירוט לפי גוף", "_נתונים"]; // לשוניות מגרסאות קודמות - נמחקות
 
+// ====================================================
+// הערות: לשונית "הערות" שאורית כותבת בה. הקוד אף פעם לא מוחק אותה,
+// ומשלב את ההערות ב"סלים ויתרות" וב"ריכוז חודשי" בכל בנייה מחדש.
+// עמודות: חודש | גוף / מנחה | הערה. חודש ריק = ההערה מופיעה בכל החודשים.
+// ====================================================
+const NOTES_SHEET = "הערות";
+
+function noteMonthKey(v) {
+  if (v === "" || v == null) return "";
+  if (v instanceof Date) return getMonthKey(v);
+  const t = String(v).trim();
+  for (let i = 1; i <= 12; i++) {
+    const m = t.match(new RegExp("^" + MONTH_NAMES[i] + "\\s*(\\d{4})$"));
+    if (m) return m[1] + "-" + String(i).padStart(2, "0");
+  }
+  const n = t.match(/^(\d{1,2})[\/.\-](\d{4})$/);
+  if (n) return n[2] + "-" + String(+n[1]).padStart(2, "0");
+  return "?" + t; // לא זוהה - לא יוצג
+}
+
+// יוצרת את לשונית ההערות אם אינה קיימת, ומעדכנת את רשימות הבחירה (בלי לגעת בתוכן)
+function ensureNotesSheet(ss, monthLabels, names) {
+  let sh = ss.getSheetByName(NOTES_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(NOTES_SHEET, Math.min(2, ss.getSheets().length));
+    sh.setRightToLeft(true);
+    sh.getRange(1, 1, 1, 4).setValues([["חודש", "גוף / מנחה", "הערה", "מזהה דיווח"]])
+      .setFontWeight("bold").setBackground("#1a2a5e").setFontColor("#ffffff");
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 180); sh.setColumnWidth(3, 450);
+    sh.setColumnWidth(4, 120);
+  }
+  sh.getRange("A2:A500").setNumberFormat("@");
+  if (monthLabels.length) sh.getRange("A2:A500").setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInList(monthLabels, true).setAllowInvalid(true).build());
+  sh.getRange("B2:B500").setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInList(names, true).setAllowInvalid(true).build());
+  return sh;
+}
+
+// קוראת את כל ההערות. מחזירה { of(חודש, שם), ofId(מזהה דיווח) }
+function readNotes(sh) {
+  const byKey = {}, byId = {};
+  if (sh && sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach(r => {
+      const name = String(r[1]).trim(), text = String(r[2]).trim(), id = String(r[3]).trim();
+      if (!text) return;
+      if (id) { byId[id] = text; return; }
+      if (!name) return;
+      const key = noteMonthKey(r[0]) + "|" + name;
+      (byKey[key] = byKey[key] || []).push(text);
+    });
+  }
+  return {
+    of: (mk, name) => (byKey[mk + "|" + name] || byKey["|" + name] || []).join(" · "),
+    ofId: id => byId[id] || ""
+  };
+}
+
+// שומרת הערה (מחליפה הערה קודמת לאותו מפתח). טקסט ריק = מחיקה.
+function saveNote(mk, name, id, text) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(NOTES_SHEET) || ensureNotesSheet(ss, [], []);
+  const n = sh.getLastRow() - 1;
+  if (n > 0) {
+    const vals = sh.getRange(2, 1, n, 4).getValues();
+    for (let i = vals.length - 1; i >= 0; i--) {
+      const r = vals[i], rid = String(r[3]).trim();
+      const match = id ? rid === id
+                       : (!rid && String(r[1]).trim() === name && noteMonthKey(r[0]) === mk);
+      if (match) sh.deleteRow(i + 2);
+    }
+  }
+  text = String(text == null ? "" : text).trim();
+  if (text) sh.appendRow([mk ? monthLabelOf(mk) : "", name, text, id || ""]);
+}
+
 function monthLabelOf(mk) {
   const p = mk.split("-");
   return MONTH_NAMES[parseInt(p[1], 10)] + " " + p[0];
@@ -240,6 +318,14 @@ function freshSheet(ss, name, defaultIndex) {
   return sh;
 }
 
+// אזהרה כשמקלידים מחוץ לעמודת ההערות (שם הטקסט יימחק בבנייה הבאה)
+function allowNotesOnly(sh, noteRanges) {
+  try {
+    const p = sh.protect().setDescription("נבנה אוטומטית - כותבים רק בעמודת הערות").setWarningOnly(true);
+    p.setUnprotectedRanges(noteRanges);
+  } catch (err) { Logger.log("protect: " + err); }
+}
+
 // צובעת רשימת שורות בבת אחת
 function styleRows(sh, rowNums, firstCol, numCols, fn) {
   if (!rowNums.length) return;
@@ -258,6 +344,10 @@ function updateMonthlySummary() {
   });
 
   const monthKeys = [...new Set(entries.map(e => getMonthKey(e.date)))].sort().reverse(); // החדש למעלה
+  const allNames = [...new Set([...SCHOOLS, ...INSTRUCTORS, ...entries.map(e => e.school).filter(Boolean)])];
+  const noteLabels = [...new Set([...monthKeys, getMonthKey(new Date())])].sort().reverse().map(monthLabelOf);
+  const notes = readNotes(ensureNotesSheet(ss, noteLabels, allNames));
+
   const orderSchools = list => {
     const known = SCHOOLS.filter(s => list.indexOf(s) >= 0);
     return known.concat(list.filter(s => SCHOOLS.indexOf(s) < 0).sort());
@@ -265,38 +355,43 @@ function updateMonthlySummary() {
 
   // =========== טבלה 1: ריכוז חודשי — חודש ← גוף ← תאריכים ===========
   const t1 = [], t1Month = [], t1Head = [], t1School = [], t1Sub = [], t1Total = [];
-  const W1 = 5;
+  const W1 = 7; // F = הערות, G = מזהה דיווח (מוסתר)
   monthKeys.forEach(mk => {
     const label = monthLabelOf(mk);
     const monthEntries = entries.filter(e => getMonthKey(e.date) === mk);
-    t1.push([label, "", "", "", ""]); t1Month.push(t1.length);
-    t1.push(["תאריך", "מנחה", "פעילות", "שעות", "עלות"]); t1Head.push(t1.length);
+    t1.push([label, "", "", "", "", "", ""]); t1Month.push(t1.length);
+    t1.push(["תאריך", "מנחה", "פעילות", "שעות", "עלות", "הערות", ""]); t1Head.push(t1.length);
     let mHours = 0;
     orderSchools([...new Set(monthEntries.map(e => e.school))]).forEach(school => {
       const rows = monthEntries.filter(e => e.school === school)
         .sort((x, y) => toDateObj(x.date) - toDateObj(y.date));
-      t1.push([school, "", "", "", ""]); t1School.push(t1.length);
+      t1.push([school, "", "", "", "", notes.of(mk, school), ""]); t1School.push(t1.length);
       let h = 0;
-      rows.forEach(e => { t1.push([toDateObj(e.date), e.instructor, e.activity, e.hours, ""]); h += e.hours; });
-      t1.push(["סה״כ " + school, "", "", h, h * INCOME_RATE]); t1Sub.push(t1.length);
+      rows.forEach(e => { t1.push([toDateObj(e.date), e.instructor, e.activity, e.hours, "", notes.ofId(e.id), e.id]); h += e.hours; });
+      t1.push(["סה״כ " + school, "", "", h, h * INCOME_RATE, "", ""]); t1Sub.push(t1.length);
       mHours += h;
     });
-    t1.push(["סה״כ " + label, "", "", mHours, mHours * INCOME_RATE]); t1Total.push(t1.length);
-    t1.push(["", "", "", "", ""]);
+    t1.push(["סה״כ " + label, "", "", mHours, mHours * INCOME_RATE, "", ""]); t1Total.push(t1.length);
+    t1.push(["", "", "", "", "", "", ""]);
   });
 
   const sh1 = freshSheet(ss, MONTHLY_SUMMARY_SHEET, 0);
   if (t1.length) {
-    sh1.getRange(1, 1, t1.length, W1).setValues(t1);
+    // עמודת התאריך: פורמט תאריך, אבל שורות כותרת החודש נשארות טקסט (אחרת "אוקטובר 2026" הופך לתאריך)
     sh1.getRange(1, 1, t1.length, 1).setNumberFormat("dd/MM/yyyy");
+    styleRows(sh1, t1Month, 1, 1, r => r.setNumberFormat("@"));
+    sh1.getRange(1, 1, t1.length, W1).setValues(t1);
     sh1.getRange(1, 5, t1.length, 1).setNumberFormat("₪#,##0");
+    sh1.getRange(1, 6, t1.length, 1).setWrap(true);
+    sh1.hideColumns(7);
+    allowNotesOnly(sh1, [sh1.getRange(1, 6, t1.length + 200, 1)]);
     styleRows(sh1, t1Month, 1, W1, r => r.setBackground("#1a2a5e").setFontColor("#ffffff").setFontWeight("bold").setFontSize(12));
     styleRows(sh1, t1Head, 1, W1, r => r.setBackground("#E8EAF6").setFontColor("#1a2a5e").setFontWeight("bold"));
     styleRows(sh1, t1School, 1, W1, r => r.setBackground("#D9E1F2").setFontColor("#1a2a5e").setFontWeight("bold"));
     styleRows(sh1, t1Sub, 1, W1, r => r.setBackground("#F2F2F2").setFontWeight("bold"));
     styleRows(sh1, t1Total, 1, W1, r => r.setBackground("#1a2a5e").setFontColor("#ffffff").setFontWeight("bold"));
   }
-  [[1,150],[2,140],[3,190],[4,70],[5,100]].forEach(([c, w]) => sh1.setColumnWidth(c, w));
+  [[1,150],[2,140],[3,190],[4,70],[5,100],[6,260]].forEach(([c, w]) => sh1.setColumnWidth(c, w));
 
   // =========== טבלה 2: סלים ויתרות — לכל חודש: מנחים | גופים ===========
   const usedThrough = (mk, test) => {
@@ -308,49 +403,53 @@ function updateMonthlySummary() {
   };
   const sum = arr => arr.reduce((t, e) => t + e.hours, 0);
 
-  const W2 = 10; // A-D מנחים, E רווח, F-J גופים
+  const W2 = 12; // A-E מנחים (כולל הערה), F רווח, G-L גופים (כולל הערה)
   const t2 = [], t2Month = [], t2Head = [], t2Total = [];
   monthKeys.filter(mk => mk >= BUDGET_START).forEach(mk => {
     const label = monthLabelOf(mk);
     const monthEntries = entries.filter(e => getMonthKey(e.date) === mk);
-    t2.push([label, "", "", "", "", "", "", "", "", ""]); t2Month.push(t2.length);
-    t2.push(["מנחה", "שעות בחודש", "סל שנתי", "יתרה בסל", "", "גוף", "שעות בחודש", "עלות בחודש", "סל שנתי", "יתרה בסל"]);
+    t2.push([label, "", "", "", "", "", "", "", "", "", "", ""]); t2Month.push(t2.length);
+    t2.push(["מנחה", "שעות בחודש", "סל שנתי", "יתרה בסל", "הערות", "", "גוף", "שעות בחודש", "עלות בחודש", "סל שנתי", "יתרה בסל", "הערות"]);
     t2Head.push(t2.length);
 
     const instRows = INSTRUCTORS.map(n => {
       const h = sum(monthEntries.filter(e => e.instructor === n));
       const b = INSTRUCTOR_BUDGET[n];
-      return [n, h, b == null ? "" : b, b == null ? "" : b - usedThrough(mk, e => e.instructor === n)];
+      return [n, h, b == null ? "" : b, b == null ? "" : b - usedThrough(mk, e => e.instructor === n), notes.of(mk, n)];
     });
     const schoolNames = orderSchools([...new Set([...SCHOOLS, ...monthEntries.map(e => e.school).filter(Boolean)])]);
     const schoolRows = schoolNames.map(n => {
       const h = sum(monthEntries.filter(e => e.school === n));
       const b = SCHOOL_BUDGET[n];
-      return [n, h, h * INCOME_RATE, b == null ? "" : b, b == null ? "" : b - usedThrough(mk, e => e.school === n)];
+      return [n, h, h * INCOME_RATE, b == null ? "" : b, b == null ? "" : b - usedThrough(mk, e => e.school === n), notes.of(mk, n)];
     });
     const n = Math.max(instRows.length, schoolRows.length);
     for (let i = 0; i < n; i++) {
-      t2.push([...(instRows[i] || ["", "", "", ""]), "", ...(schoolRows[i] || ["", "", "", "", ""])]);
+      t2.push([...(instRows[i] || ["", "", "", "", ""]), "", ...(schoolRows[i] || ["", "", "", "", "", ""])]);
     }
     const ih = sum(monthEntries), sh = ih;
-    t2.push(["סה״כ", ih, "", "", "", "סה״כ", sh, sh * INCOME_RATE, "", ""]); t2Total.push(t2.length);
-    t2.push(["", "", "", "", "", "", "", "", "", ""]);
+    t2.push(["סה״כ", ih, "", "", "", "", "סה״כ", sh, sh * INCOME_RATE, "", "", ""]); t2Total.push(t2.length);
+    t2.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
   });
 
   const sh2 = freshSheet(ss, BUDGET_SHEET, 1);
   if (t2.length) {
+    sh2.getRange(1, 1, t2.length, 1).setNumberFormat("@"); // שם החודש נשאר טקסט
     sh2.getRange(1, 1, t2.length, W2).setValues(t2);
     const num = "#,##0.##;[Red]-#,##0.##";
     sh2.getRange(1, 2, t2.length, 3).setNumberFormat(num);
-    sh2.getRange(1, 7, t2.length, 1).setNumberFormat(num);
-    sh2.getRange(1, 8, t2.length, 1).setNumberFormat("₪#,##0");
-    sh2.getRange(1, 9, t2.length, 2).setNumberFormat(num);
+    sh2.getRange(1, 8, t2.length, 1).setNumberFormat(num);
+    sh2.getRange(1, 9, t2.length, 1).setNumberFormat("₪#,##0");
+    sh2.getRange(1, 10, t2.length, 2).setNumberFormat(num);
+    sh2.getRange(1, 5, t2.length, 1).setWrap(true);
+    sh2.getRange(1, 12, t2.length, 1).setWrap(true);
+    allowNotesOnly(sh2, [sh2.getRange(1, 5, t2.length + 200, 1), sh2.getRange(1, 12, t2.length + 200, 1)]);
     styleRows(sh2, t2Month, 1, W2, r => r.setBackground("#1a2a5e").setFontColor("#ffffff").setFontWeight("bold").setFontSize(12));
     styleRows(sh2, t2Head, 1, W2, r => r.setBackground("#E8EAF6").setFontColor("#1a2a5e").setFontWeight("bold"));
     styleRows(sh2, t2Total, 1, W2, r => r.setBackground("#F2F2F2").setFontWeight("bold"));
-    styleRows(sh2, t2Head.concat(t2Total), 5, 1, r => r.setBackground("#ffffff"));
+    styleRows(sh2, t2Head.concat(t2Total), 6, 1, r => r.setBackground("#ffffff"));
   }
-  [[1,140],[2,85],[3,70],[4,75],[5,25],[6,170],[7,85],[8,95],[9,70],[10,75]].forEach(([c, w]) => sh2.setColumnWidth(c, w));
+  [[1,140],[2,85],[3,70],[4,75],[5,220],[6,25],[7,170],[8,85],[9,95],[10,70],[11,75],[12,220]].forEach(([c, w]) => sh2.setColumnWidth(c, w));
 }
 
 // ====================================================
@@ -613,7 +712,7 @@ function archiveSchoolsForNewYear() {
 // ====================================================
 function reorderTabs() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const desiredOrder = [].concat([MONTHLY_SUMMARY_SHEET, BUDGET_SHEET, YEARLY_SUMMARY_SHEET, SUMMARY_SHEET], SCHOOLS, INSTRUCTORS);
+  const desiredOrder = [].concat([MONTHLY_SUMMARY_SHEET, BUDGET_SHEET, NOTES_SHEET, YEARLY_SUMMARY_SHEET, SUMMARY_SHEET], SCHOOLS, INSTRUCTORS);
   let pos = 1;
   desiredOrder.forEach(name => {
     const sheet = ss.getSheetByName(name);
@@ -837,3 +936,54 @@ function setupMonthlyFixedTrigger() {
 
 // להשלמת אוקטובר 2026 (פעם אחת): Run > addFixedHoursOctober2026
 function addFixedHoursOctober2026() { addMonthlyFixedHoursFor("2026-10"); }
+
+// ====================================================
+// עדכון אוטומטי כשכותבים בלשונית "הערות" בגיליון
+// ====================================================
+function onEdit(e) {
+  if (!e || !e.range) return;
+  const sh = e.range.getSheet(), name = sh.getName();
+  if (name === NOTES_SHEET) {
+    if (e.range.getRow() < 2) return;
+    updateMonthlySummary(); // בונה מחדש עם ההערות
+    sh.activate(); e.range.activate();
+    return;
+  }
+  if (name !== MONTHLY_SUMMARY_SHEET && name !== BUDGET_SHEET) return;
+  const col = e.range.getColumn(), noteCols = name === BUDGET_SHEET ? [5, 12] : [6];
+  if (noteCols.indexOf(col) < 0) return;
+  const values = e.range.getValues();
+  for (let i = 0; i < values.length; i++) captureNote(sh, e.range.getRow() + i, col, values[i][0]);
+}
+
+// שומרת הערה שהוקלדה ישירות בטבלה, לפי השורה שבה נכתבה
+function captureNote(sh, row, col, text) {
+  const colA = sh.getRange(1, 1, row, 1).getValues();
+  let mk = "";
+  for (let r = row - 1; r >= 0 && !mk; r--) {           // החודש: כותרת החודש הקרובה מעל
+    const k = noteMonthKey(colA[r][0]);
+    if (k && k[0] !== "?") mk = k;
+  }
+  if (!mk) return;
+  if (sh.getName() === BUDGET_SHEET) {
+    const who = String(sh.getRange(row, col === 5 ? 1 : 7).getValue()).trim();
+    if (!who || ["מנחה", "גוף", "סה״כ"].indexOf(who) >= 0) return;
+    saveNote(mk, who, "", text);
+    return;
+  }
+  // ריכוז חודשי
+  const id = String(sh.getRange(row, 7).getValue()).trim();
+  if (id) { saveNote(mk, "", id, text); return; }       // הערה על דיווח מסוים
+  let school = String(colA[row - 1][0]).trim();
+  if (school.indexOf("סה״כ ") === 0) school = school.slice(5);
+  if (SCHOOLS.indexOf(school) < 0 && !school) return;
+  if (["תאריך"].indexOf(school) >= 0 || noteMonthKey(school)[0] !== "?") return;
+  saveNote(mk, school, "", text);                        // הערה על הגוף באותו חודש
+}
+
+// תפריט בגיליון: "דיווחי שעות" > "עדכון הטבלאות"
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu("דיווחי שעות")
+    .addItem("עדכון הטבלאות", "updateAllSummaries")
+    .addToUi();
+}
