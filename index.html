@@ -551,6 +551,12 @@ async function submitEntry() {
   const actLabel = "ליווי";
   const newHours = parseFloat(f.hours);
   if (!f.date || f.date > localISO()) { alert("יש לבחור תאריך תקין (לא עתידי)"); return; }
+  // בדיקת דיווח כפול (אותו מנחה, אותו יום, אותו גוף)
+  const sameDay = state.entries.filter(e => e.instructor === state.user && e.date === f.date && e.school === f.school);
+  if (sameDay.length) {
+    const list = sameDay.map(e => `• ${e.hours} שעות`).join("\n");
+    if (!confirm(`⚠️ כבר קיים דיווח ל${f.school} ב־${hebDayLabel(f.date)}:\n${list}\n\nייתכן שהדיווח כבר נשמר. לשמור דיווח נוסף בכל זאת?`)) return;
+  }
   if (!confirm(`לאשר את הדיווח?\n\n📅 ${hebDayLabel(f.date)}\n🏫 ${f.school}\n⏱ ${newHours} שעות`)) return;
 
   // בדיקת סל שעות
@@ -572,11 +578,15 @@ async function submitEntry() {
   saved = true; render();
   try {
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000));
-    await Promise.race([apiSave(entry), timeout]);
+    // הדיווח נכנס לרשימה מיד, כדי שלא ייראה כאילו "נעלם" ויוזן שוב
     state.entries.push(entry);
+    await Promise.race([apiSave(entry), timeout]);
   } catch (err) {
     console.error("apiSave failed:", err);
   } finally {
+    // רענון מהשרת אחרי שהשמירה הסתיימה בוודאות, כדי שהרשימה תשקף את מה שנשמר באמת
+    clearTimeout(window._refreshT);
+    window._refreshT = setTimeout(refreshEntriesQuietly, 20000);
     // תמיד לאפס את הטופס - גם אם השמירה נכשלה/נתקעה - כדי שאפשר יהיה
     // להמשיך ולהזין דיווח לגוף הבא ברצף בלי לסגור את האפליקציה
     formState = { date: "", school: "", hours: "" };
@@ -590,7 +600,14 @@ async function deleteEntry(id) {
   if (!confirm("למחוק את הדיווח?\n" + entry.school + " · " + fmtDate(entry.date) + " · " + entry.hours + " שעות")) return;
   state.entries = state.entries.filter(e=>String(e.id)!==String(id));
   render();
-  await apiDelete(id, entry.instructor, entry.school);
+  try { await apiDelete(id, entry.instructor, entry.school); } catch(_) {}
+  // רענון מהשרת אחרי המחיקות, כדי לראות אם משהו לא נמחק באמת
+  clearTimeout(window._refreshT);
+  window._refreshT = setTimeout(refreshEntriesQuietly, 20000);
+}
+
+async function refreshEntriesQuietly() {
+  try { state.entries = await apiGet(); render(); } catch(_) {}
 }
 
 async function loadEntries() {
