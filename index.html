@@ -197,7 +197,8 @@ async function apiSave(entry) {
     + "&activity=" + encodeURIComponent(entry.activity)
     + "&hours=" + encodeURIComponent(entry.hours)
     + "&ts=" + encodeURIComponent(entry.ts);
-  await fetch(url);
+  const res = await fetch(url);
+  return await res.json();
 }
 async function apiDelete(id, instructor, school) {
   const url = SCRIPT_URL + "?action=delete&id=" + encodeURIComponent(id) + "&instructor=" + encodeURIComponent(instructor) + "&school=" + encodeURIComponent(school);
@@ -583,7 +584,18 @@ async function submitEntry() {
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000));
     // הדיווח נכנס לרשימה מיד, כדי שלא ייראה כאילו "נעלם" ויוזן שוב
     state.entries.push(entry);
-    await Promise.race([apiSave(entry), timeout]);
+    window._pendingOps = (window._pendingOps || 0) + 1;
+    const savePromise = apiSave(entry);
+    // התשובה מהשרת נבדקת גם אם הגיעה אחרי 8 שניות
+    savePromise.then(r => {
+      if (!r || !r.success) {
+        state.entries = state.entries.filter(e => String(e.id) !== String(entry.id));
+        render();
+        alert("⚠️ הדיווח לא נשמר!\n" + entry.school + " · " + fmtDate(entry.date) + " · " + entry.hours + " שעות\n\nשגיאה: " + ((r && r.error) || "לא ידועה") + "\n(גרסת שרת: " + ((r && r.version) || "ישנה") + ")\n\nאפשר לצלם את ההודעה הזו ולשלוח לאורית.");
+      }
+    }).catch(err => console.error("apiSave failed:", err))
+      .finally(() => { window._pendingOps--; });
+    await Promise.race([savePromise, timeout]);
   } catch (err) {
     console.error("apiSave failed:", err);
   } finally {
@@ -603,15 +615,15 @@ async function deleteEntry(id) {
   if (!confirm("למחוק את הדיווח?\n" + entry.school + " · " + fmtDate(entry.date) + " · " + entry.hours + " שעות")) return;
   state.entries = state.entries.filter(e=>String(e.id)!==String(id));
   render();
-  let ok = false;
+  let ok = false, r = null;
   window._pendingOps = (window._pendingOps || 0) + 1;
   try {
-    const r = await apiDelete(id, entry.instructor, entry.school);
+    r = await apiDelete(id, entry.instructor, entry.school);
     ok = !!(r && r.success && r.deleted > 0);
   } catch(_) {}
   window._pendingOps--;
   if (!ok) {
-    alert("⚠️ המחיקה לא נקלטה בשרת, והדיווח עדיין קיים.\nהרשימה תיטען מחדש. אפשר לנסות שוב בעוד רגע.");
+    alert("⚠️ המחיקה לא נקלטה בשרת, והדיווח עדיין קיים.\nהרשימה תיטען מחדש. אפשר לנסות שוב בעוד רגע.\n\nשגיאה: " + ((r && r.error) || "לא ידועה") + "\n(גרסת שרת: " + ((r && r.version) || "ישנה") + ")");
     await refreshEntriesQuietly();
     return;
   }
