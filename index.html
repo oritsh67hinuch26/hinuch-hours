@@ -185,7 +185,9 @@ function monthLabel(d) { return ["","ינואר","פברואר","מרץ","אפר
 async function apiGet() {
   const res = await fetch(SCRIPT_URL);
   const data = await res.json();
-  return data.entries || [];
+  // הסרת כפילויות לפי מזהה (אם אותו דיווח נשמר פעמיים)
+  const seen = new Set();
+  return (data.entries || []).filter(e => !seen.has(String(e.id)) && seen.add(String(e.id)));
 }
 async function apiSave(entry) {
   const url = SCRIPT_URL + "?action=save&id=" + encodeURIComponent(entry.id)
@@ -199,7 +201,8 @@ async function apiSave(entry) {
 }
 async function apiDelete(id, instructor, school) {
   const url = SCRIPT_URL + "?action=delete&id=" + encodeURIComponent(id) + "&instructor=" + encodeURIComponent(instructor) + "&school=" + encodeURIComponent(school);
-  await fetch(url);
+  const res = await fetch(url);
+  return await res.json();
 }
 
 // ---- STATE ----
@@ -600,13 +603,26 @@ async function deleteEntry(id) {
   if (!confirm("למחוק את הדיווח?\n" + entry.school + " · " + fmtDate(entry.date) + " · " + entry.hours + " שעות")) return;
   state.entries = state.entries.filter(e=>String(e.id)!==String(id));
   render();
-  try { await apiDelete(id, entry.instructor, entry.school); } catch(_) {}
+  let ok = false;
+  window._pendingOps = (window._pendingOps || 0) + 1;
+  try {
+    const r = await apiDelete(id, entry.instructor, entry.school);
+    ok = !!(r && r.success && r.deleted > 0);
+  } catch(_) {}
+  window._pendingOps--;
+  if (!ok) {
+    alert("⚠️ המחיקה לא נקלטה בשרת, והדיווח עדיין קיים.\nהרשימה תיטען מחדש. אפשר לנסות שוב בעוד רגע.");
+    await refreshEntriesQuietly();
+    return;
+  }
   // רענון מהשרת אחרי המחיקות, כדי לראות אם משהו לא נמחק באמת
   clearTimeout(window._refreshT);
   window._refreshT = setTimeout(refreshEntriesQuietly, 20000);
 }
 
 async function refreshEntriesQuietly() {
+  // לא לטעון מחדש בזמן שמחיקות עדיין בדרך לשרת, אחרת דיווחים "יחזרו" זמנית
+  if ((window._pendingOps || 0) > 0) { clearTimeout(window._refreshT); window._refreshT = setTimeout(refreshEntriesQuietly, 5000); return; }
   try { state.entries = await apiGet(); render(); } catch(_) {}
 }
 
